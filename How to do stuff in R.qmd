@@ -1,0 +1,1328 @@
+---
+title: "How to do stuff in R"
+date: last-modified
+date-format: "[Last updated:] DD/MM/YYYY HH:mm"
+format:
+  html:
+    standalone: true
+    embed-resources: true
+    toc: true
+    toc-depth: 3
+    toc-expand: 1
+    number-sections: true
+    toc-location: left
+    df-print: kable
+    code-fold: false
+    theme: default
+    fontsize: 0.9em
+execute:
+  warning: false
+  echo: true
+  eval: false
+---
+
+A compendium of useful code snippets and recipes for wrangling and analysis in R.
+
+```{r}
+#| label: packages
+#| eval: true
+#| echo: false
+library(pacman)
+p_load(
+  tidyverse,
+  janitor,
+  nycflights13,
+  gt)
+```
+
+
+# Read data
+## Read from local storage
+```{r}
+df = readr::read_csv("myFile.csv", na = c(""))
+
+df = readr::read_delim("myFile.txt", delim = "|", na = c(""))
+
+df = readxl::read_excel("myFile.xlsx", sheet = 1, na = c(""))
+```
+
+Combine with `janitor::clean_names()`
+```{r}
+df = read_csv("myFile.csv", na = c("")) %>%
+  clean_names(case = c("snake", "lower_camel", "upper_camel", ...))
+```
+
+
+Alternative file types
+```{r}
+# SPSS (.sav)
+df = haven::read_sav("myFile.sav")
+
+# JSON
+df = rjson::fromJSON(file = "myFile.json")
+df = as.data.frame(df)
+
+# Password-protected files
+df = excel.link::xl.read.file("myFile.xlsx", password = "my_password")
+```
+
+
+### Read in very large files
+```{r}
+# fread()
+df = data.table::fread(
+    input = "path/myFile.xlsx",
+    header = T,
+    sep = "|",  
+    na.strings = "",
+    encoding = "UTF-8",
+    colClasses = list(
+      character = c("colA", "colB", "colC"),
+      numeric = c("colD", "colE")))
+
+# fst()
+# (see example of write_fst below)
+df = fst::read_fst('myFile.fst')
+```
+
+
+## Read in from a database
+```{r}
+# First establish a connection 
+# Example 1:
+con = dbConnect(odbc::odbc(),
+                Driver = "ODBC Driver 17 for SQL Server",
+                Server = "mtceepr.database.windows.net",
+                Database = "mtc-prod-2022",
+                Authentication = "ActiveDirectoryIntegrated",
+                Port = 49554)
+
+# Example 2:
+con = dbConnect(odbc::odbc(), 
+                Driver = "SQL Server", 
+                Server = "3DCPRI-PDB16\\ACSQLS", 
+                Database = "MatchedAdminSQL",
+                Trusted_Connection = "yes")
+
+# Read in entire table
+df = dbGetQuery(
+  ILR_con,
+  "SELECT * 
+  FROM table_name")
+
+# Read in selected columns with filtering
+df = odbc::dbGetQuery(
+  con,
+  "SELECT [var1], [var2], [var3]
+  FROM [database].[table]
+  WHERE var4 >= 2 AND var7 <= 10"
+)
+```
+
+
+## Data validation
+### Missing values
+Count missing observations across all columns
+```{r}
+#| eval: true
+airquality %>%
+  mutate(sum_na = rowSums(is.na(.))) %>%
+  select(Ozone, Solar.R, Wind, sum_na) %>% head()
+```
+
+`naniar` package
+```{r}
+# total % of missing values
+naniar::pct_miss(airquality) 
+
+# % of rows with any missing values
+naniar::pct_miss_case(airquality) 
+```
+
+Visualise missingness by variable
+```{r}
+#| eval: true
+#| fig-height: 2
+
+# visualise missingness by variable
+naniar::gg_miss_var(airquality, show_pct = T)
+```
+
+Visualise missingness by case
+```{r}
+#| eval: true
+#| fig-height: 3
+naniar::vis_miss(airquality)
+```
+
+## Interrogating data
+Count distinct values
+```{r}
+# single vector
+starwars %>% summarise(homeworld_distinct = n_distinct(homeworld))
+
+# where is.character
+starwars %>% summarise(across(where(is.character), n_distinct))
+```
+
+Count duplicates
+```{r}
+#| eval: true
+# across all columns
+iris %>% janitor::get_dupes()
+
+# across specified columns
+mtcars %>% janitor::get_dupes(mpg, hp)
+```
+
+Retain only distinct rows
+```{r}
+mtcars %>% distinct(mpg, hp, .keep_all = T)
+```
+
+
+## Other validation
+
+`validate` package
+```{r}
+# example from James Tierney
+extract_rules <- 
+  validate::validator(
+    # Each row must be unique in representing the teaching hours allocated to one subject 
+    # in one year group for one teacher at one school
+    is_unique(census_year, staff_matching_reference, la_estab, subject_description_sfr, year_group), #1
+    
+    # Checks for availability of records on key fields
+    is_complete(census_year), #2
+    is_complete(census_year, staff_matching_reference), #3
+    is_complete(census_year, staff_matching_reference, la_estab), #4
+    is_complete(census_year, staff_matching_reference, la_estab, subject_description_sfr), #5
+    is_complete(census_year, staff_matching_reference, la_estab, subject_description_sfr, year_group), #6
+    is_complete(census_year, staff_matching_reference, la_estab, subject_description_sfr, year_group, hours), #7
+    
+    # Hours taught must be positive and no more than 40 hours per week
+    hours >= 0 & hours <= 40 #8
+    )
+
+swc_extract_validation_results <- summary(validate::confront(df, extract_rules))
+
+extract_missing_values <- df %>% 
+  summarise(across(.cols = everything(), ~sum(is.na(.x))))
+```
+
+
+`skimr` package
+```{r}
+#| eval: true
+skimr::skim(starwars)
+```
+
+
+## Write data
+```{r}
+write.csv(df, "fileName", row.names = F)
+
+readr::write_csv(df, "fileName", delim = ",", na = "")
+
+readr::write_delim(df, "fileName", delim = "|", na = "")
+
+# fst:
+write.fst(df, "fileName.fst")
+
+# to a database:
+DBI::dbWriteTable(conn = con, 
+             value = df, 
+             name = "table_name",
+             overwrite = T)
+```
+
+
+# Wrangling
+## NA values
+### Converting NA to another value
+
+`dplyr::replace_na()`
+```{r}
+airquality %>% mutate(Ozone = replace_na(Ozone, 0))
+
+airquality %>% mutate(across(everything(), ~ replace_na(., 0)))
+```
+
+`tidyr::fill`
+This is useful if you have a value that is only inserted once due to grouping, but you need to repeat this value for all the remaining rows.
+```{r}
+#| eval: true
+airquality %>%
+  tidyr::fill(Ozone, .direction = "down") %>% select(Ozone, Solar.R) %>% head()
+# note how 18 has been repeated on line 5 (repeated from above)
+```
+
+
+### Converting values to NA
+`dplyr::na_if`
+```{r}
+# e.g. convert "unknown" to NA
+starwars %>% mutate(eye_color = na_if(eye_color, "unknown"))
+
+starwars %>% mutate(across(where(is.character), ~ na_if(., "unknown")))
+```
+
+
+### Dropping NA values
+`dplyr::drop_na`
+```{r}
+# Drop all
+airquality %>% drop_na()
+
+# Drop NA in specific columns
+airquality %>% drop_na(Ozone, Solar.R)
+```
+
+
+## Wide to long format
+Recipe: convert `starwars` to long-format to easily compute summary statistics. Firstly use `pivot_longer()`:
+```{r}
+#| eval: true
+starwars_long = starwars %>% 
+  select(-c(films, vehicles, starships)) %>%
+  pivot_longer(cols = c(height, mass, birth_year), 
+               names_to = "measure", 
+               values_to = "value")
+
+head(starwars_long) 
+```
+
+Secondly, group by `measure` and compute summary statistics.
+```{r}
+#| eval: true
+starwars_long %>%
+  group_by(measure) %>%
+  summarise(min = min(value, na.rm=T),
+            mean = mean(value, na.rm=T),
+            max = max(value, na.rm=T))
+```
+
+
+## Long to wide format
+Recipe: convert `us_rent_income` from long to wide format such that each row represents a single NAME with separate columns for 'income' and 'rent'.
+```{r}
+#| eval: true
+# original long format
+us_rent_income = tidyr::us_rent_income %>% select(-c(moe))
+us_rent_income %>% head()
+```
+
+```{r}
+#| eval: true
+us_rent_income %>%
+  pivot_wider(names_from = variable,
+              values_from = estimate) %>%
+  head()
+```
+
+### Melt and cast with `data.table`
+```{r}
+melted_df = data.table::melt(df, 
+                             measure = patterns("^Q([1-9]|[12][0-9]|3[01])ID$", "Sco$"),
+                             value.name = c("QID", "Score"))
+  
+cast_df = data.table::dcast(melted_df, 
+                            PupilId + FormID + group ~ QID, 
+                            value.var="Score", drop=T)
+```
+
+
+## Separate and unnest
+```{r}
+#| eval: true
+c_list = data.frame(
+  a = c("item1,item2,item3"),
+  b = c("item2,item3"))
+
+# separate items into new rows
+c_list %>% tidyr::separate_longer_delim(a, delim=",")
+
+# separate items into new cols
+c_list %>% tidyr::separate_wider_delim(a, delim=",", names = c("col1", "col2", "col3"))
+```
+
+`tidyr::unnest`
+Recipe: given a list of items for each row (e.g. `c("The Empire Strikes Back", "Revenge of the Sith" [...]`), extract each one into a new row.
+```{r}
+#| eval: true
+starwars %>%
+  unnest_longer(films) %>%
+  select(name, films) %>% head()
+```
+
+
+## Unite
+Recipe: combine the values in two columns
+```{r}
+#| eval: true
+df = data.frame(
+  group = c("AA", "BB", "CC"),
+  size = c("big", "small", "medium"),
+  value = c(20, 25, 40))
+
+df
+
+df %>% unite(col = "united", group, size, sep = "_")
+df %>% unite("united", group, size, value, sep="-")
+```
+
+
+## Coalesce
+`coalesce` searches for the first non-missing value across columns specified. 
+```{r}
+df %>% mutate(flag = coalesce(TestMark1A, TestMark2A, TestMark3A))
+```
+
+
+## Filtering
+Note that filtering is faster on ungrouped data.
+```{r}
+mtcars %>% filter(gear >= 4 & hp > 109)
+```
+
+
+
+### Slicing
+Use `slice` functions to subset rows.
+
+Recipe: look for duplicate entries according to certain variables and use `slice_tail` to select the last observation in each grouping. This works by assigning a row number to each row according to its arrangement/grouping, then simply retaining the last row in the group.
+```{r}
+#| eval: true
+rownames(mtcars) = NULL
+
+mtcars %>%
+  select(mpg, cyl, disp, hp) %>%
+  group_by(mpg, cyl, disp, hp) %>%
+  mutate(id = row_number()) %>% head()
+```
+
+Above we see that if a row is a unique combination of mpg, cyl, disp, and hp then its id is 1. Otherwise, its id is 2. `slice_tail` will assign grouped row numbers like this and retain only the last row number in a group.
+```{r}
+mtcars %>%
+  select(mpg, cyl, disp, hp) %>%
+  group_by(mpg, cyl, disp, hp) %>%
+  slice_tail(n=1) 
+```
+
+Alternatively, use `slice(1)` in the above to select the **first** row. 
+
+### Duplicating/replicating rows
+Say you have the following df where you would like to duplicate each row according to the value in the `cnt` column:
+```{r}
+#| eval: true
+#| echo: false
+df = data.frame(
+  pupil = c("A01", "A02", "A03", "A04", "A05"),
+  score = c(18, 14, 15, 18, 10),
+  cnt = c(1, 1, 3, 1, 2)
+)
+df
+```
+
+`slice` can also be used to display or print a certain number of rows from a tibble.
+```{r}
+mtcars %>% slice_max(mpg, n=5)
+mtcars %>% slice_min(qsec, n=5)
+```
+
+
+
+## Deriving new variables
+### `if_any` and `if_all`
+```{r}
+# if_any and if_all return a logical result, e.g. assessing whether some condition is present across 
+# any or all of a specific set of columns. The examples below work for both functions. 
+
+# Recipe: return TRUE if value is "blue" in any columns containing "color"
+starwars %>% mutate(blue = if_any(
+  contains("color"), ~ . == "blue"))
+
+# Recipe: flag when any columns starting with "TotalMarkA" contain "L"
+df %>% mutate(contains_L = if_any(starts_with("TotalMarkA"), ~ . == "L"))
+
+# Recipe: state whether a value in either column appears in a list of values:
+hierarchy = c("A", "B", "C", "D")
+df %>% mutate(in_hierarchy = if_any(c(TestMark1, TestMark2), ~ . %in% hierarchy))
+```
+
+You can also use `if_any` with `filter`:
+```{r}
+
+# filter rows where any of Sepal.Width or Petal.Width is bigger than 4. 
+iris %>%
+  filter(if_any(c(Sepal.Width, Petal.Width), ~ . > 4))
+
+# Filter out rows that contain "Legacy grade"
+df %>%
+  filter(if_all(c(gcse_grade_eng_lit_15,
+                  gcse_grade_maths_15), ~ . != "Legacy grade"))
+```
+
+
+### `case_when`, `case_match`
+Recipe: create a new variable to indicate "large" vs "small" starwars characters according to mass and height. 
+```{r}
+#| eval: true
+#| 
+starwars %>%
+  mutate(size_group = case_when(
+    mass > 100 | height > 200 ~ "large",
+    T ~ "small"
+  )) %>%
+  select(name, mass, height, size_group) %>% head()
+```
+
+Here, `T` effectively reads as "else", i.e. to specify what happens if everything evaluates to FALSE or NA. To supply an NA value instead, you can use one of the following (making sure to align with the data type in the other labels) e.g.:
+
+- `T ~ NA_character_`
+- `T ~ NA_integer_`
+
+Note that `case_when` needs to operate on the same class of vectors, e.g. character-only, numeric-only, etc. It's not possible to combine values of e.g. `~ 50` and `~ "large"`. 
+
+Another example using `if_any` (this says: mark an error if any of TestMark1A to 3A are "0"):
+```{r}
+df %>% 
+  mutate(missing_pages_check = case_when(
+      if_any(c(TestMark1A, TestMark2A, TestMark3A), ~. == "0") ~ "Error",
+      T ~ "OK"))
+```
+
+
+### Cross-column operations
+There are many examples of the `across` function in this guide. The examples below use `purrr:pmap`.
+
+Recipe: sum values above 0 across columns containing "Recall"
+```{r}
+df %>% mutate(var1 = pmap_int(select(., contains("Recall")), 
+                              ~sum(c(...) > 0, na.rm=T)))
+```
+
+Recipe: count instances of value "k" across columns containing "InputMethods"
+```{r}
+df %>% mutate(mode_k = pmap_int(select(., contains("InputMethods")), 
+                                ~sum(c(...) %in% "k")))
+```
+
+
+## Changing variables
+### Renaming columns
+```{r}
+iris %>% rename(sepal_length = "Sepal.Length")
+```
+
+`rename_with` - replace all ".x" and ".y" created by joining (these become _sc and _agg)
+```{r}
+df %>%
+  left_join(df2, by = "CurrDfENo") %>%
+  rename_with(stringr::str_replace,
+              pattern = ".x",
+              replacement = "_sc") %>%
+  rename_with(stringr::str_replace,
+              pattern = ".y",
+              replacement = "_agg")
+```
+
+
+### Relocating
+```{r}
+iris %>% relocate(Species, .before = Sepal.Length)
+iris %>% relocate(Petal.Width, .after = last_col())
+
+# if you don't specify .before or .after, the column will be moved to the front by default
+iris %>% relocate(Species)
+```
+
+
+### Recoding
+Use `dplyr::recode` to change old values (first) into new values (second): 
+```{r}
+#| eval: false
+
+df %>%
+  mutate(sen_status = recode(
+    sen_status,
+    "N" = "NoSEN",
+    "K" = "SENSupport",
+    "E" = "EHCP",
+    "S" = "Statement"))
+```
+
+Note that for some reason if you are recoding numeric to character, you need to place integers in quotes:
+```{r}
+df %>%
+  mutate(fsm_eligibility = recode(fsm_eligibility,
+                                  "0" = "NoFSM",
+                                  "1" = "FSM"))
+```
+
+For reference, this is the way to recode in Base R:
+```{r}
+df$var[df$var == "Old Value"] <- "New Value"
+```
+
+
+Recipe: recode `gender` values to numeric and assign `NA_real_` if cannot be recoded (NA type must match the type of the other values).
+```{r}
+#| eval: true
+starwars %>%
+  select(name:mass, gender) %>%
+  mutate(gender2 = recode(
+    gender,
+    "masculine" = 1,
+    "feminine" = 2,
+    .default = NA_real_
+  )) %>% slice(78:83)
+```
+
+```{r}
+# another example
+df %>% mutate(
+  maladmin_check = recode(
+    maladmin_check,
+    "0" = "Maladmin appropriately flagged",
+    "1" = "No maladmin",
+    "2" = "Error: not all marks suppressed",
+    "3" = "Error: MarkStatus missing"
+  )) 
+```
+
+
+### Refactoring / relevelling
+Use `fct_relevel` to reorder the level of factors. This can be useful for tabulation or graphing.
+```{r}
+# relevel a single variable
+df %>%
+  mutate(var1 = fct_relevel(var1,
+                            c("f1", "f3", "f4", "f2")))
+
+# relevel across several columns
+df %>% 
+  mutate(across(c(var1, var2),
+                ~ fct_relevel(., c("High attainers", 
+                                   "Standard & strong passes", 
+                                   "Low attainers"))))
+```
+
+
+## Joining
+There are two types of joins:
+
+- Inner joins: retaining only rows that appear in BOTH tables (`inner_join`)
+- Outer joins: retaining only rows from ONE of the two tables (`left_join`, `right_join`, `full_join`)
+
+A left join will retain all rows in the first table (`df` below). 
+```{r}
+# when the primary key is the same
+df1 %>% left_join(df2, by = "primaryKey")
+
+# when primary keys are different
+df1 %>% left_join(df2, by = c("primaryKey1" = "Primarykey2"))
+
+# to only retain certain columns from the second dataframe:
+df1 %>% left_join(select(df2, col1, col2), by = "primaryKey")
+```
+
+### Joining tips and extras
+`suffix` - If you are joining tables with identical table names, these will be renamed `.x` for table1 and `.y` for table2. You can control the renaming:
+```{r}
+df1 %>% left_join(df2, by = "primaryKey",
+                  suffix = c(".t1", ".t2"))
+```
+
+`multiple` - If you are joining wide and long-format data, there will be multiple matches in the latter. You can control what happens in this situation (but the default value of `all` is usually sufficient).
+```{r}
+df1 %>% left_join(df2, by = "primaryKey",
+                  multiple = "all")
+# all - returns every match detected
+# first - returns first match in table2
+# last - returns last match in table2
+```
+
+`unmatched` - By default, unmatched rows in outer joins will be dropped, but this can be controlled.
+```{r}
+df1 %>% left_join(df2, by = "primaryKey",
+                  unmatched = "drop")
+
+# drop - delete unmatched rows (default)
+# error - throw an error
+```
+
+`relationship` - Explicitly tell R what kind of relationship to expect:
+
+- "one-to-one"
+- "one-to-many" 
+- "many-to-one"
+- "many-to-many" (doesn't provide any checks but prevents warnings)
+
+## Splitting a list of dataframes
+```{r}
+# split a dataframe according to a variable
+form_list = split(MTC2022_kmt, MTC2022_kmt$FormID)
+
+# turn each list element into a dataframe
+form_list = lapply(seq_along(form_list), function(x) as.data.table(form_list[[x]]))
+
+# extract each element into the global environment
+lapply(seq_along(form_list), function(x) {
+  assign(c("Form1_clean", "Form2_clean", "Form3_clean", "Form4_clean", "Form5_clean")[x], 
+         form_list[[x]], envir=.GlobalEnv)})
+
+# compute summary stats for each list element
+lapply(form_list, function(x)
+  x %>% rowwise() %>% mutate(formmark = sum(c_across(where(is.numeric)))) %>% 
+    group_by(inputtype) %>% 
+    summarise(n = n(),
+              form_min = min(formmark),
+              form_mean = mean(formmark),
+              form_max = max(formmark)))
+```
+
+
+
+
+# Working with strings
+
+## Detect strings
+`str_detect`
+```{r}
+# Recipe: use filter to find strings containing "white" in the skin_color col
+starwars %>% 
+  filter(str_detect(skin_color, "white")) %>%
+  select(1:5)
+
+# search for multiple patterns in a string
+df %>% filter(str_detect(cheating_check, "reduced|approp|missing"))
+
+# use for summing
+sum(str_detect(cheating_tab$cheating_check, "reduced|populated") > 0)
+
+# look for where Review contains A to Z and a number between 0 and 2. 
+df %>% mutate(review_check = case_when(
+  str_detect(Review, "[a-zA-Z][0-2]") & (mark_change + outcome_change) > 0 ~ "Error"))
+```
+
+
+## Replace strings
+`str_replace_all` (this replaces all matches - `str_replace` only replaces the first match)
+```{r}
+# Recipe: replace "[1]" with a longer description, e.g. "1 audible time alert"
+df$var_long = str_replace_all(
+  df$var,
+  c("[1]" = "1 audible time alert",
+    "[2]" = "2 audio version",
+    "[3]" = "3 colour contrast"))
+```
+
+## Tidy up strings
+`str_to_lower`, `str_to_title`
+```{r}
+starwars %>% mutate(name = str_to_lower(name))
+
+starwars %>% mutate(gender = str_to_title(gender))
+```
+
+`str_length`
+```{r}
+#| eval: true
+string = "This is a string."
+str_length(string)
+```
+`str_trim`
+```{r}
+string1 = "    This is a string with padding           "
+str_trim(string1, side = c("both"))
+```
+
+`str_squish`
+```{r}
+string2 = " This is a string with padding and a full stop     ."
+str_squish(string2)
+```
+
+`str_trunc` - with and without ellipsis
+```{r}
+#| eval: true
+long_string = "The Sleepwalkers: How Europe Went to War in 1914"
+str_trunc(long_string, 16, ellipsis = "")
+str_trunc(long_string, 19) # default ellipsis is ...
+```
+
+
+
+## Subset strings
+`str_sub`
+```{r}
+#| eval: true
+string = "I love R"
+str_sub(string, 3, 6)
+```
+
+```{r}
+# can be used as part of a case_when, e.g. check that the first element of TotalMarkA is NOT "E" or "%"
+case_when(
+  !str_sub(TotalMarkA, 1, 1) %in% c("E", "%")
+)
+```
+
+## Regular expressions
+Identify digits, letters, or a combination
+```{r}
+# Recipe: find names containing digits
+starwars %>%
+  filter(str_detect(name, "[:digit:]")) %>% select(1:5)
+```
+
+Also try:
+
+- `"[:alnum:]"` - letters and numbers
+- `"[:alpha:]"` - letters
+- `"[:punct:]"` - any punctuation
+- `"[:graph:]"` - letters, numbers, and punctuation
+- `"[:space:]"` - space characters
+
+```{r}
+# look for strings containing A-Z, a-z, and a number between 2 and 7
+str_detect(string, "[a-zA-Z][2-7]")
+
+# look for strings starting with A-Z, a-z, 0-9, dashes, apostrophes, or parentheses and ending
+# with an asterisk
+str_detect(string, "^[A-Za-z0-9\\s\\-\\'\\(\\)]*$")
+```
+
+
+Anchors
+```{r}
+# starts with a
+str_detect(string, "^a")
+
+# ends with a
+str_detect(string, "a$")
+```
+
+
+# Dates and times
+```{r}
+filter(date > as.Date("2001-01-19") & date < as.Date("2003-03-21")) 
+```
+
+
+# Summarising
+## Crosstabulation
+`janitor::tabyl`
+
+```{r}
+#| eval: true
+# one-way tabyl
+
+starwars %>% 
+  mutate(eye_color = na_if(eye_color, "unknown")) %>%
+  tabyl(eye_color, show_na = T) %>%
+  adorn_pct_formatting(digits=2) %>%
+  arrange(desc(n)) %>%
+  adorn_totals() 
+```
+
+Tip: for a two-way tabyl, remove double whitespaces by including a call to `str_replace_all`
+```{r}
+#| eval: true
+# two-way tabyl
+
+ggplot2::diamonds %>%
+  tabyl(cut, color) %>%
+  adorn_totals(c("row", "col")) %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting()  %>%
+  adorn_ns(position = "front") %>%
+  mutate(across(everything(), ~ str_replace_all(., "  ", " ")))
+
+# optional: pipe the above into this to remove percents from total columns/row
+# %>% mutate(across(-c(cut, Total), ~ case_when(
+#     cut == "Total" ~ as.character(parse_number(.)),
+#     TRUE ~.))) %>% 
+#   mutate(Total = parse_number(Total)) 
+
+```
+
+
+# Functions
+Some examples of functions and nifty tricks for making things dynamic.
+
+Basic structure of a function. Note that default values such as NA can be expressed to show that an argument is optional. The ... notation indicates multiple arguments. 
+```{r}
+my_func = function(arg1, arg2 = NA, ...){
+  # some operation
+}
+```
+
+
+## Error handling using `stop`
+```{r}
+my_func = function(x, y) {
+  
+  if (!exists("folder_file_path"))
+    stop("Error: Please specify folder file path for datafeed")
+}
+
+
+my_func = function(df, subject){
+  # subject argument check
+  acceptable_subjects = c("G", "M")
+  
+  if (!subject %in% acceptable_subjects)
+    stop("Error: Please choose 'M' or 'G' as subject.")
+}
+```
+
+
+## Extract arguments using `substitute` and `deparse`
+```{r}
+my_func = function(datafile){
+  df_name = deparse(substitute(datafile))
+  
+  # for example, you might then use df_name later:
+  df %>% select(!!paste("KS2", df_name, "_CGS", sep=""))
+}
+```
+
+
+## Exporting to the global environment 
+Using `<--`
+```{r}
+my_func = function(x, y){
+  prod <<- x * y
+}
+```
+
+Using `assign` for dynamic naming
+```{r}
+my_func = function(x, y){
+  ...
+  assign(paste0("dca_rows_", df_name, "_flagged"), # dynamic name
+         dca_rows_flagged, # object to export
+         envir = .GlobalEnv)
+}
+```
+
+Remove something from the global environment
+```{r}
+if (nrow(df_flagged)==0){
+    rm(df_flagged, pos = ".GlobalEnv")
+  }
+```
+
+
+## Tidy evaluation
+Tidy evaluation is a way of achieving data masking, i.e. changing the context of computation. Whenever we use e.g. `starwars %>% filter(height > 200)`, we are using data masking (i.e. `height` instead of `starwars$height`). To change the context of computation, we need to suspend evaluation ('quoting') before resuming in a different environment. Tidy eval is only necessary when arguments vary, so is only really useful within functions.
+
+We use a quote and unquote pattern called interpolation. For singular arguments we use `enquo` to quote and `!!` to unquote. 
+```{r}
+#| eval: true
+grouped_mean = function(data, group_var, sum_var){
+  group_var = enquo(group_var)
+  sum_var = enquo(sum_var)
+  
+  data %>%
+    group_by(!!group_var) %>%
+    summarise(mean = mean(!!sum_var))
+}
+
+grouped_mean(mtcars, am, hp)
+```
+For multiple arguments, use `enquos` and `!!!`. Here, multiple arguments are indicated by `...`. 
+```{r}
+#| eval: true
+grouped_mean_multiple = function(.data, .sum_var, ...){
+  .group_vars = enquos(...)
+  .sum_var = enquo(.sum_var)
+  
+  .data %>%
+    group_by(!!!.group_vars) %>%
+    summarise(mean = mean(!!.sum_var))
+}
+
+grouped_mean_multiple(mtcars, hp, am, gear)
+```
+
+Don't forget `get()` and `{{}}`. 
+
+Here, use `if_any` and `coalesce` to take the first non-missing value within a pre-specified list, and then derive a new variable based on a dynamic name (`{{varname}}`)
+```{r}
+my_func = function(df, subject){
+  varname = paste0("TotalMarkA_", subject)
+  
+  tab <<- df %>%
+      mutate(in_hierarchy = if_any(c(TestMark1, TestMark2), ~ . %in% hierarchy)) %>%
+      mutate(value = ifelse(in_hierarchy == TRUE, coalesce(TestMark1, TestMark2), NA)) %>%
+      mutate({{varname}} := case_when(
+        value == TotalMarkA & Subject == subject ~ "OK",
+        Subject != subject ~ "N/A: diff subj",
+        TRUE ~ paste0("Error: ", varname, " incorrect"))) 
+}
+```
+
+
+
+## Nifty functions for various tasks
+### Compare NA
+```{r}
+# function for comparing NAs (i.e. because if two values are NA, you can't 
+# compare them for equivalence)
+  compareNA <- function(v1,v2) {
+    same <- (v1 == v2) | (is.na(v1) & is.na(v2))
+    same[is.na(same)] <- FALSE
+    return(same)
+  }
+
+# example: if TA and TestStatus are different, assign 3
+!compareNA(TA, TestStatus)) ~ 3
+```
+
+# Text analysis
+```{r}
+# tidytext package
+
+```
+
+
+
+# Presentation
+## `gt` package
+```{r}
+#| eval: true
+# dummy data
+df = gt::countrypops %>%
+  select(-c(starts_with("country_code"))) %>%
+  filter(str_detect(country_name, "Republic")) %>%
+  filter(year %in% c(2000, 2010, 2020)) %>%
+  pivot_wider(names_from = year, values_from = population)
+
+# simple table
+df %>%
+  gt(rowname_col = "country_name") %>%
+  tab_spanner(label = "Total population", columns = everything()) %>%
+  fmt_integer() %>%
+  cols_align("left") %>% 
+  tab_row_group(label = "group 1", rows = 1:3) %>%
+  tab_row_group(label = "group 2", rows = 4:7) %>%
+  row_group_order(c("group 1", "group 2")) %>%
+  tab_options(table.align='left',
+              table.font.size = 14,
+              table.font.names = "Arial") %>%
+  tab_header(title = "Population table") %>%
+  tab_options(table.align='left') %>% 
+  opt_stylize(style = 3) %>%  # styles 1-6
+  tab_footnote("Source: World Bank")
+```
+
+ ### Other `gt` functions
+```{r}
+# to wrap column or header names when they're too long - use md() and <br/>
+gt() %>% 
+  tab_header(title = md("Proportion of 16-18 learners <br/> by highest study aim, 2020/21"))
+
+# custom column names
+gt() %>% cols_label(old_name = "New name")
+
+# do the same with cols_label:
+gt() %>% cols_label(var1 = md("Long variable name <br/> that needs splitting"))
+
+# format number for specific columns with separator mark and decimals
+gt %>% fmt_number(
+  columns = c('n.16', "n.17", "n"),
+  sep_mark = ',', decimals = 0) 
+
+# add conditional formatting
+gt() %>%
+  data_color(columns = 2:4, 
+             direction = "column",
+             palette = colorRampPalette(c("lightblue", "darkblue"))(100))
+
+# save a gt table object (assuming it's called 'tab')
+gtsave(tab, "tab.rtf") # for word format
+gtsave(tab, "tab.png")
+```
+
+
+### Conditional formatting
+```{r}
+#| eval: true
+#| echo: false
+
+# fake data for below
+set.seed(2024)
+df = data.frame(
+  var_a = round(rnorm(10, 10, 2),0),
+  var_b = round(runif(10, 5, 15),0),
+  var_c = round(rnorm(10, 300, 50),0),
+  var_d = c("true", "false", "true", "true", "true", "false", "false", "true", "false", "false")
+)
+```
+
+
+```{r}
+#| eval: true
+
+df %>%
+  gt() %>%
+  # example 1 - use a readymade palette from RColorBrewer
+  data_color( 
+    columns = c(var_a), 
+    colors = scales::col_numeric( 
+      palette = "PuOr",
+      domain = c(0, 15)),
+    apply_to = "fill"
+    ) %>%
+  # example 2 - use a custom palette
+  data_color( 
+    columns = c(var_b), 
+    colors = scales::col_numeric( 
+      palette = c('white', 'orange', 'red'),
+      domain = c(0, 15)),
+    ) %>%
+  # example 3 - define colour based on if condition
+  data_color(
+    columns = var_c, 
+    rows = var_c < 300,
+    method = "numeric",
+    palette = c("red")
+  ) %>%
+  # example 4 - colour based on text value
+  data_color(
+    columns = var_d,
+    colors = scales::col_factor(
+      palette = c("green", "red"),
+      domain = c("false", "true")
+    )
+  )
+# notes: can change apply_to to 'text' or 'fill (default)';
+# if a cell is NA for formatting, it will be grey (change with
+# na_color). 
+```
+
+## Quarto documents
+Below is a template for a Quarto YAML. Note: include `standalone` and `embed-resources` if you want to be able to share or view the HTML file on another device. 
+```{r}
+---
+title: "My Title"
+date: last-modified
+date-format: "[Last updated:] DD/MM/YYYY HH:mm"
+format:
+  html:
+    standalone: true
+    embed-resources: true
+    toc: true
+    toc-depth: 3
+    toc-expand: 1
+    number-sections: true
+    toc-location: left
+    df-print: kable
+    code-fold: true
+    theme: default
+    fontsize: 1em
+execute:
+  warning: false
+---
+```
+
+To cross-reference another section in your Quarto document (requires `number_sections` to be true in the YAML): 
+
+`# Introduction {#sec-introduction}`
+
+To reference this:
+
+`See @sec-introduction.`
+
+Other Quarto features
+```{r}
+# URLs
+See the following [page](www.insert-url-here.com). 
+```
+
+### Figure options
+```{r}
+# Add the following at the beginning of a code chunk:
+# (note that figures are centre-aligned by default)
+#| fig-align: "left"
+#| fig-height: 4
+#| fig-width: 4
+```
+
+
+# Create Excel workbook
+Use the `openxlsx` package to export various objects, dataframes, or outputs to an Excel file with multiple worksheets.
+```{r}
+library(openxlsx)
+
+# in this case, only export objects if they have been created in the environment
+# (otherwise just remove the if statements)
+
+qa_workbook = createWorkbook("QA_workbook")
+
+if(exists("allowable_pupil_flagged")){
+  addWorksheet(qa_workbook, "PupilValuesErr")
+  writeDataTable(qa_workbook, sheet = "PupilValuesErr", allowable_pupil_flagged, startRow=1,
+                 tableStyle = "none")
+}
+
+if(exists("upn_invalid_flagged")){
+  addWorksheet(qa_workbook, "InvalidUPN")
+  writeDataTable(qa_workbook, sheet = "InvalidUPN", upn_invalid_flagged, startRow=1,
+                 tableStyle = "none")
+}
+
+saveWorkbook(qa_workbook, file = paste0("./Outputs/", "KS2DF_Queries_", date, "_", seq, "_R",  ".xlsx"), 
+             overwrite = TRUE)
+```
+
+
+Example from DTF work in STA:
+```{r}
+xl_output = function(form = NULL,
+                     model = NULL, 
+                     mod_fit = NULL,
+                     item_fit_ref = NULL, 
+                     item_fit_focal = NULL,
+                     item_infit_ref = NULL,
+                     item_infit_foc = NULL,
+                     resid_ref_df = NULL,
+                     resid_focal_df = NULL,
+                     ref_cases = NULL, 
+                     focal_cases = NULL,
+                     DIFs = NULL, 
+                     DTF = NULL, 
+                     TCC = NULL, 
+                     sDTF = NULL){
+  # define styles
+  posStyle <- createStyle(fontColour = "#006100", bgFill = "#C6EFCE")
+  negStyle <- createStyle(fontColour = "#9C0006", bgFill = "#FFC7CE")
+  hs <- createStyle(fontColour = "#ffffff", fgFill = "#4F80BD", halign = "center",
+                    valign = "center")
+  colStyle <- createStyle(halign = "center")
+  center_and_dp = createStyle(halign = "center", numFmt = "#.000")
+  hs = createStyle(halign = "center")
+  
+  # create workbook
+  workbook = createWorkbook(paste("MTC2022", form))
+  
+  # README ---
+  addWorksheet(workbook, "readme")
+  
+  writeData(workbook, sheet = "readme", startCol = 1, startRow = 2, "This spreadsheet presents the results of IRT modelling to examine the potential bias introduced by different input methods in the 2022 MTC.")
+  writeData(workbook, sheet = "readme", startCol = 1, startRow = 3, "It contrasts users who use different input methods in multiple group IRT models for the purpose of analysing differential item and test functioning.")
+  
+  writeData(workbook, sheet = "readme", startCol = 1, startRow = 5, paste("Analysis here is based on ", form, " with ", model@Data[["N"]], " respondents", sep=""))
+  
+  writeData(workbook, sheet = "readme", startCol = 1, startRow = 7, paste("File created:", Sys.time()))
+  writeData(workbook, sheet = "readme", startCol = 1, startRow = 8, paste("By user:", Sys.getenv("USERNAME")))
+    writeData(workbook, sheet = "readme", startCol = 1, startRow = 9, paste("Using", R.version[["version.string"]]))
+
+  writeDataTable(workbook, sheet = "readme", session_package_info, startRow=17, withFilter = FALSE, tableName = "R_packages_used") 
+  
+  
+  # MODEL FIT ---
+  addWorksheet(workbook, "model_fit")
+  writeDataTable(workbook, sheet = "model_fit", mod_fit, startRow=2, withFilter = FALSE, headerStyle = hs,
+                 tableName = "Model_fit")
+  
+  setColWidths(workbook, "model_fit", cols=2:26, widths = 12)
+  
+  # add notes
+  writeData(workbook, sheet = "model_fit", paste("MTC2022", form, "model fit"), startCol = 1, startRow = 1)
+  
+  # more notes after table
+  writeData(workbook, sheet = "model_fit", startCol = 1, startRow = 5, "Notes:")
+  writeData(workbook, sheet = "model_fit", startCol = 1, startRow = 6, "M2 = Maydeu-Olivares & Joe (2006) limited information test procedure")
+  writeData(workbook, sheet = "model_fit", startCol = 1, startRow = 7, "P-value of M2 should be >= 0.05 but large N makes it overly sensitive (de Ayala, 2022 p121)")
+  
+  # conditional formatting to highlight which indices show good fit
+  conditionalFormatting(workbook, sheet="model_fit", cols=3, rows=3, rule=" < 0.05 ", type = "expression",style = negStyle)
+  conditionalFormatting(workbook, sheet="model_fit", cols=4:6, rows=3, rule=" < 0.06 ", type = "expression",style = posStyle)
+  
+  # model info
+  writeData(workbook, sheet = "model_fit", startCol = 1, startRow = 14, "MIRT model call:")
+  writeData(workbook, sheet = "model_fit", startCol = 1, startRow = 15, deparse(model@Call))
+  
+  writeData(workbook, sheet = "model_fit", startCol = 1, startRow = 20, paste("N: ", model@Data[["N"]]))
+  writeData(workbook, sheet = "model_fit", startCol = 1, startRow = 21, paste("Iterations: ", model@OptimInfo[["iter"]]))
+  writeData(workbook, sheet = "model_fit", startCol = 1, startRow = 22, paste("Converged: ", model@OptimInfo[["converged"]]))
+  
+  addStyle(workbook, sheet = "model_fit", style = center_and_dp, rows = 3, cols = 3:10, gridExpand=T)
+  
+  # ...
+  # apply conditional formatting for misfit col:
+  conditionalFormatting(workbook, sheet="item_fit", cols=6, rows=33:57, type = "contains", rule = "misfit", style = negStyle)
+  conditionalFormatting(workbook, sheet="item_fit", cols=13, rows=33:57, type = "contains", rule = "misfit", style = negStyle)
+  
+  # change to number formatting (to avoid scientific notation in Excel)
+  addStyle(workbook, sheet = "item_fit", style = center_and_dp, rows = 3:27, cols = 5)
+  addStyle(workbook, sheet = "item_fit", style = center_and_dp, rows = 3:27, cols = 12)
+  
+  #center
+  addStyle(workbook, sheet = "item_fit", colStyle, rows = 3:28, cols = 2:4, gridExpand = TRUE)
+  
+  # ...
+  # FOCAL (MOUSE)
+  writeData(workbook, sheet = "residuals", startCol = 1, startRow = 32, paste("Q3 residuals for", foc, "group"))
+  writeData(workbook, sheet = "residuals", startCol = 1, startRow = 33, paste("Cases to check:", focal_cases))
+  writeDataTable(workbook, sheet = "residuals", resid_focal_df, startRow=34, startCol = 1, withFilter = FALSE,
+                 headerStyle = hs, rowNames=T, tableName = "Q3_Residuals_mouse")
+  #styling
+  addStyle(workbook, sheet = "residuals", center_and_dp, rows = 6:30, cols = 2:26, gridExpand = TRUE)
+  addStyle(workbook, sheet = "residuals", center_and_dp, rows = 35:60, cols = 2:26, gridExpand = TRUE)
+  
+  
+  # conditional formatting to identify problematic cases
+  posStyle <- createStyle(fontColour = "#006100", bgFill = "#C6EFCE")
+  conditionalFormatting(workbook, sheet="residuals", cols=2:25, rows=6:30, rule=" > 0.2236", type = "expression",style = posStyle)
+  conditionalFormatting(workbook, sheet="residuals", cols=2:25, rows=35:60, rule=" > 0.2236", type = "expression",style = posStyle)
+  
+  # set col widths
+  setColWidths(workbook, "residuals", cols=2:26, widths = 5.00)
+  # ...
+  
+  # DTF ---
+  addWorksheet(workbook, "DTF")
+  # call external function dtf_converter() to split DTF list into 3 dataframes (obs, ci, p)
+  dtf_converter(DTF)
+  
+  writeData(workbook, sheet = "DTF", startCol = 1, startRow = 1, "Differential test functioning")
+  writeData(workbook, sheet = "DTF", startCol = 1, startRow = 2, paste("sDTF = signed differential test functioning (positive value indicates bias in favour of reference group ", "(", ref, ")", sep=""))
+  writeData(workbook, sheet = "DTF", startCol = 1, startRow = 3, "uDTF = unsigned differential test functioning (absolute value of bias regardless of direction)")
+  
+  # obs
+  writeDataTable(workbook, sheet = "DTF", obs, startRow=5, startCol = 1, withFilter = FALSE,
+                 headerStyle = hs, rowNames=T, tableName = "DTF_obs")
+  
+  # ci
+  writeDataTable(workbook, sheet = "DTF", ci, startRow=8, startCol = 1, withFilter = FALSE,
+                 headerStyle = hs, rowNames=T, tableName = "DTF_ci")
+  
+  # p
+  writeDataTable(workbook, sheet = "DTF", p, startRow=12, startCol = 1, withFilter = FALSE,
+                 headerStyle = hs, rowNames=T, tableName = "DTF_p")
+  
+  writeData(workbook, sheet = "DTF", startCol = 3, startRow = 13, "Tests whether sDTF is significantly non-zero")
+  setColWidths(workbook, "DTF", cols=1:5, widths = 15)
+  
+  # avoid scientific notation for p-value
+  addStyle(workbook, sheet = "DTF", style = center_and_dp, rows = 13, cols = 2, gridExpand=T)
+  
+  TCC[["main"]] = paste(form, " TCC", " (", sDTF_stat, ")", sep="")
+  print(TCC)
+  
+  insertPlot(workbook, sheet = "DTF", width=6, height=4, startRow=16, startCol=1, dpi = 300)
+  
+  # sDTF plot
+  print(sDTF)
+  insertPlot(workbook, sheet = "DTF", width=6, height=4, startRow=16, startCol=6, dpi = 300)
+  
+  # save
+  saveWorkbook(workbook, file = paste("MTC2022", "_", ref, "_", foc, "_", form, ".xlsx", sep=""), overwrite = TRUE)
+}
+```
+

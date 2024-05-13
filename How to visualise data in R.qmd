@@ -1,0 +1,728 @@
+---
+title: "How to visualise data in R"
+date: last-modified
+date-format: "[Last updated:] DD/MM/YYYY HH:mm"
+format:
+  html:
+    standalone: true
+    embed-resources: true
+    toc: true
+    toc-depth: 3
+    toc-expand: 1
+    number-sections: true
+    toc-location: left
+    df-print: kable
+    code-fold: false
+    theme: default
+    fontsize: 1em
+execute:
+  warning: false
+  echo: true
+  eval: true
+---
+
+A compendium of code for visualising data in R (primarily using `ggplot2`).
+
+```{r}
+#| label: packages
+#| echo: false
+library(pacman)
+p_load(
+  tidyverse,
+  janitor,
+  gcookbook,
+  palmerpenguins,
+  scales,
+  RColorBrewer,
+  ggpubr)
+```
+
+Note: this guide uses built-in datasets from the following, amongst others:
+
+- [`palmerpenguins`](https://allisonhorst.github.io/palmerpenguins/)
+- [`gcookbook`](https://cran.r-project.org/web/packages/gcookbook/gcookbook.pdf)
+- [`ggplot2`](https://ggplot2.tidyverse.org/reference/#data)
+
+# Structure of a `ggplot`
+
+* **Aesthetics** describe mapping between visual elements and variables in the data, e.g. x-axis may be mapped to "time_point", while colour may be mapped to "gender". 
+* **Geoms** are the type of visual 'marks' on a plot such as lines, points, or bars: they are geometrical objects used to represent data.
+
+```{r}
+#| eval: false
+data %>% 
+  ggplot(aes(x = ind_var, 
+             y = dep_var)) +
+  geom_point(aes(colour = factor(grouping_var)),
+             size = 1.5)
+```
+
+If you want to add a global attribute (e.g. to apply to all points, lines, or whatever), specify this **outside of `aes()`** because it is not a mapping (it doesn't relate to something in the dataframe itself). 
+
+# Plot types
+## Points
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+mpg %>%
+  ggplot(aes(x = displ, y = hwy)) +
+  geom_point(size = 1.5,
+             position = "identity") 
+```
+
+This masks the picture because there are overlapping points. Changing `position` to `"jitter"`:
+```{r}
+#| echo: false
+#| fig-height: 3
+#| fig-width: 5
+mpg %>%
+  ggplot(aes(x = displ, y = hwy)) +
+  geom_point(size = 1.5,
+             position = "jitter") 
+```
+
+Adding mappings for colour and shape:
+```{r}
+#| fig-height: 3
+#| fig-width: 7
+mpg %>%
+  ggplot(aes(x = displ, y = hwy)) +
+  geom_point(aes(colour = class,
+                 shape = class),
+             size = 1.5,
+             position = "jitter") 
+```
+
+Note that this can also be written as:
+```{r}
+#| eval: false
+mpg %>%
+  ggplot() +
+  geom_point(aes(x = displ, y = hwy, 
+                 colour = class,
+                 shape = class), 
+             size = 1.5)
+```
+
+### Point shapes
+Note: the `fill` attribute can be changed to any colour for shapes 21 to 24. 
+```{r}
+#| echo: false
+#| fig-height: 3
+#| fig-width: 3
+
+shapes <- data.frame(
+  shape = c(0:19, 22, 21, 24, 23, 20),
+  x = 0:24 %/% 5,
+  y = -(0:24 %% 5))
+
+ggplot(shapes, aes(x, y)) + 
+  geom_point(aes(shape = shape), size = 5, fill = "red") +
+  geom_text(aes(label = shape), hjust = 0, nudge_x = 0.15) +
+  scale_shape_identity() +
+  expand_limits(x = 4.1) +
+  theme_void()
+```
+
+## Lines
+```{r}
+#| fig-height: 3
+#| fig-width: 6
+gcookbook::countries %>%
+  filter(Name %in% c("United Kingdom", "Ireland") & Year > 1980) %>%
+  ggplot(aes(x=Year, y=GDP)) +
+  geom_line(aes(colour = Name, 
+                linetype = Name), 
+            linewidth = 0.8)
+
+# to add arrows to the ends of lines:
+# arrow = arrow(length = unit(0.25, "cm"), ends = "last", type = "closed")
+```
+
+Adding a line of best fit
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+gcookbook::heightweight %>%
+  ggplot(aes(x=heightIn, y=weightLb)) +
+  geom_point(aes(colour=sex)) +
+  geom_smooth(method="lm", aes(colour=sex))
+```
+
+
+### Linetypes
+```{r}
+#| echo: false
+#| fig-height: 3
+#| fig-width: 5
+lty <- c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash")
+linetypes <- data.frame(
+  y = seq_along(lty),
+  lty = lty) 
+
+ggplot(linetypes, aes(0, y)) + 
+  geom_segment(aes(xend = 5, yend = y, linetype = lty)) + 
+  scale_linetype_identity() + 
+  geom_text(aes(label = lty), hjust = 0, nudge_y = 0.2) +
+  scale_x_continuous(NULL, breaks = NULL) + 
+  scale_y_reverse(NULL, breaks = NULL)
+```
+
+
+## Bars
+### Simple bar chart
+
+* `geom_col` leaves the data as it is and merely represents values already in the dataframe
+* `geom_bar` uses `stat_count` to derive new values from the data. As a result, geom_bar doesn't expect a y-value, but if you provide one then you are telling it to forgo the aggregation it would have done anyway with stat_count.
+
+Using `stat = "count"`
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+palmerpenguins::penguins %>%
+  ggplot(aes(x=species, fill=species)) +
+  geom_bar(stat="count", 
+           width = 0.8,
+           show.legend = F)
+```
+
+Using `stat = "identity"`
+```{r}
+#| fig-height: 3
+#| fig-width: 4
+gcookbook::drunk %>%
+  pivot_longer(c(2:6)) %>%
+  group_by(sex) %>%
+  summarise(felonies = sum(value)) %>%
+  ggplot(aes(x = sex, y = felonies)) +
+  geom_bar(stat = "identity", width = 0.8)
+```
+
+You should also use `stat_identity` if you want to **reorder** bars in descending order.
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+palmerpenguins::penguins %>%
+  group_by(species) %>%
+  summarise(n = n()) %>%
+  ggplot(aes(reorder(species, -n), n)) +
+  geom_bar(stat = "identity", width = 0.8, aes(fill = species),
+           show.legend = F)
+```
+
+
+### Dodged bar chart
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+palmerpenguins::penguins %>%
+  ggplot(aes(x = island, fill = sex)) +
+  geom_bar(position = position_dodge(),
+           width = 0.8)
+```
+Note that the above graph contains NAs. To remove these, use the `subset` function:
+```{r}
+#| eval: false
+penguins %>%
+  drop_na(sex) %>%
+  ggplot(aes(x = island, fill = sex)) + ...
+```
+
+
+### Stacked bar chart
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+palmerpenguins::penguins %>%
+  ggplot(aes(x = island, fill = sex)) +
+  geom_bar(position = position_stack(), 
+           width = 0.8)
+```
+
+
+## Proportional stacked bar
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+palmerpenguins::penguins %>%
+  ggplot(aes(x = island, fill = sex)) +
+  geom_bar(position = position_fill(),
+           width= 0.8) +
+  ylab("Proportion")
+```
+Text is dealt with later on, but to add figures to the above figure:
+```{r}
+#| fig-height: 3.5
+#| fig-width: 5
+palmerpenguins::penguins %>%
+  group_by(island, sex) %>%
+  summarise(n = n()) %>%
+  mutate(prop = n / sum(n)) %>%
+  ggplot(aes(x = island, y = prop, fill = sex)) +
+  geom_bar(stat = "identity", width = 0.8) +
+  geom_text(aes(label =
+                  paste0(sprintf("%.1f", prop * 100), "%")), 
+            position = position_stack(vjust = 0.5),
+            size = 3.5) +
+  ylab("Proportion")
+  
+# note: to change decimal places, "%.0f", "%.2f" etc
+```
+
+
+## Boxplot
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+palmerpenguins::penguins %>%
+  ggplot(aes(x = species, y = bill_length_mm)) +
+  stat_boxplot(
+    geom ='errorbar', 
+    width = 0.5) +
+  geom_boxplot(
+    notch = F,
+    outlier.color = "red",
+    outlier.size = 3
+  )
+```
+
+## Violin plot
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+palmerpenguins::penguins %>%
+  ggplot(aes(x=species, y=bill_length_mm)) +
+  geom_violin(aes(fill = species),
+              draw_quantiles = c(0.5)) # 0.5 is median
+```
+
+
+## Histogram
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+palmerpenguins::penguins %>%
+  ggplot(aes(x=body_mass_g)) +
+  geom_histogram(binwidth = 100, 
+                 fill = "grey", 
+                 colour = "black")
+
+# multiple groups
+palmerpenguins::penguins %>%
+  ggplot(aes(x=body_mass_g)) +
+  geom_histogram(aes(fill=species), 
+                 binwidth = 50,
+                 alpha = 0.7)
+```
+
+
+## Density
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+ggplot2::diamonds %>%
+  ggplot(aes(x = carat)) +
+  geom_density(fill = "lightblue", 
+               alpha=0.8)
+```
+
+
+## Pie
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+palmerpenguins::penguins %>%
+  count(species) %>%
+  ggplot(aes(x = "", y = n, fill = species)) +
+  geom_col(color = "black") +
+  coord_polar(theta = "y") +
+  geom_text(aes(label = n),
+            position = position_stack(vjust = 0.5)) +
+  theme_void()
+```
+
+
+# Plotting statistical summary data
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+palmerpenguins::penguins %>%
+  ggplot(aes(x=species, y=flipper_length_mm)) +
+  geom_bar(fun = "median", 
+           stat = "summary")
+```
+
+## Pointrange
+```{r}
+#| fig-height: 5
+#| fig-width: 3
+palmerpenguins::penguins %>%
+  ggplot() +
+  geom_pointrange(mapping = aes(x = species, y = flipper_length_mm),
+                  stat = "summary",
+                  fun.ymin = min,
+                  fun.ymax = max,
+                  fun.y = median)
+```
+
+# Working with text
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+#| echo: false
+ggplot(data.frame(x = c("axis.text.x"), y= c("axis.text.y")), aes(x=x, y=y)) +
+  xlab("xlab/ axis.title.x") +
+  ylab("ylab / \n axis.title.y") +
+  ggtitle("ggtitle", subtitle = "subtitle") +
+  theme(axis.title.y = element_text(angle = 0, vjust = 0.5))
+```
+
+
+## Plot title
+```{r}
+#| eval: false
+p + ggtitle("Main plot title", subtitle = "Plot subtitle")
+
+# centre align plot title
+p + theme(plot.title = element_text(hjust = 0.5))
+
+# change plot title size
+p + theme(plot.title = element_text(size = 18))
+```
+
+## Adding text to charts
+```{r}
+#| fig-height: 4
+#| fig-width: 4
+palmerpenguins::penguins %>%
+  group_by(species) %>%
+  summarise(n = n()) %>%
+  ggplot(aes(x = species, y = n)) +
+  geom_bar(stat = "identity", width = 0.8) +
+  geom_text(
+    aes(label = n,
+        vjust = -0.5),
+    size = 3.5)
+```
+
+# Axes
+Note that the same functions are used for x or y axes - adjust accordingly.
+```{r}
+#| eval: false
+# custom axis titles
+p + xlab("...")
+p + ylab("...")
+
+# remove axis title
+p + theme(axis.title.x = element_blank())
+
+# change axis title text size
+p + theme(axis.title.x = element_text(size = 14))
+
+# rotate x- axis title text 45 degrees
+p + theme(axis.title.x = element_text(angle = 45, vjust = 0.5))
+
+# rotate y-axis to 0 degrees (to be read horizontally not vertically)
+p + theme(axis.title.y = element_text(angle = 0, vjust = 0.5))
+
+# remove tick marks
+p + theme(axis.ticks.x = element_blank())
+```
+
+## Axis formatting options
+```{r}
+#| eval: false
+# percent labels with breaks of 10-100%
+p + scale_y_continuous(labels = scales::label_percent(accuracy = 1), breaks = (0:10)/10)
+
+# currency suffix
+p + scale_y_continuous(labels = scales::label_dollar(prefix = "£"))
+# can also specify suffix, big.mark = ",", and decimal.mark = "."
+
+# dates and times
+p + scale_y_continuous(labels = label_date(format = "%Y-%m-%d"))
+p + scale_y_continuous(labels = label_time(format = "%H:%M:%S"))
+
+# thousands separator
+p + scale_y_continuous(labels = label_comma(big.mark = ","))
+```
+
+## Limits and ranges of axes
+```{r}
+#| eval: false
+# xlim, ylim, coord_cartesian (doesn't clip data)
+# scale_x_continuous(limits = c(0, 100))
+```
+
+# Themes
+To add a pre-defined theme to a plot: `p + theme_*()`.
+
+Tips:
+
+- Place the `theme` argument early on in the plot sequence if you want to adjust other features e.g. axis attributes, because otherwise `theme` will override these. 
+- Set a global theme: `theme_set(theme_classic(base_size = 16))`. 
+
+```{r}
+#| echo: false
+p = mtcars %>% ggplot(aes(x=mpg, y=hp)) + geom_point()
+
+grey = p + theme_grey() + theme(axis.title = element_blank()) + ggtitle("theme_grey")
+bw = p + theme_bw() + theme(axis.title = element_blank()) + ggtitle("theme_bw")
+line = p + theme_linedraw() + theme(axis.title = element_blank()) + ggtitle("theme_linedraw")
+minimal = p + theme_minimal() + theme(axis.title = element_blank()) + ggtitle("theme_minimal")
+classic = p + theme_classic() + theme(axis.title = element_blank()) + ggtitle("theme_classic")
+void = p + theme_void() + theme(axis.title = element_blank()) + ggtitle("theme_void")
+
+ggarrange(grey, bw, line, minimal, classic, void)
+```
+
+## A custom theme I like
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+
+p + theme(
+  axis.line = element_line(colour="black"),
+  panel.grid.major = element_line(colour="grey"),
+  panel.background = element_rect(fill = "white", 
+            colour = NA)
+)
+```
+
+
+# Legends
+You can control the palette, breaks, labels, and name. E.g. if the factor labels are too long, you can shorten them. Use a separate call to contol other attributes like `linetype` or `fill`. 
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+gcookbook::countries %>%
+    filter(str_detect(Name, "United")) %>%
+    ggplot(aes(x = Year, y = GDP)) + 
+    geom_line(aes(colour = Name), linewidth = 0.8) +
+    scale_colour_manual(values = c(RColorBrewer::brewer.pal(3, "Set2")),
+                        breaks = c("United Kingdom", "United Arab Emirates", "United States"),
+                        labels = c("UK", "UAE", "US"),
+                        name = "Country")
+```
+
+
+# Other things
+## Flip coordinates
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+
+ggplot2::diamonds %>%
+  ggplot(aes(x=cut, y=carat)) +
+  geom_violin() +
+  coord_flip()
+```
+
+
+
+# Colour palettes
+## Manual
+```{r}
+# Sequential palettes
+blues = c("#104F75", "#407291", "#7095AC", "#9FB9C8", "#CFDCE3")
+reds = c("#8A2529", "#A15154", "#B97C7F", "#D0A8A9", "#E8D3D4")
+oranges = c("#E87D1E", "#ED974B", "#F1B178", "#F6CBA5", "#FAE5D2")
+yellows = c("#C2A204", "#CEB536", "#DAC768", "#E7DA87", "#F3ECCD")
+greens = c("#004712", "#336C41", "#669171", "#99B5A0", "#CFDABD")
+purples = c("#260859", "#51397A", "#7D6B9B", "#A89CBD", "#D4CEDE")
+
+show_col(c(blues, reds, oranges, yellows, greens, purples), ncol=5, cex_label=0.7)
+```
+
+`scale_*_manual` for manually-created palettes
+```{r}
+#| fig-height: 3
+#| fig-width: 6
+# example of sequential. Tip: use rev() to reverse the order of colours
+ggplot2::diamonds %>%
+  filter(price < 6000) %>%
+  ggplot(aes(x = price, fill = cut)) +
+  geom_histogram(position = "dodge", binwidth = 1000) +
+  scale_fill_manual(values = rev(yellows))
+```
+
+Use a focus palette to bring attention to one particular series, while keeping the other data there for comparison.
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+
+focus = c("#12436D", "#BFBFBF", "#BFBFBF") # contrast ratio of 5.57:1 (passes Web Content Accessibility
+# Guidelines [WCAG]).
+# Add as many grey colours as you need.
+
+countries %>% 
+  filter(str_detect(Name, "United")) %>%
+  ggplot(aes(x=Year, y=GDP)) + 
+  geom_line(aes(colour = Name), size = 0.8) +
+  scale_colour_manual(values = focus,
+                        breaks = c("United Kingdom", "United Arab Emirates", "United States"),
+                        labels = c("UK", "UAE", "US"),
+                        name = "Country")
+```
+
+
+## Brewer
+`scale_*_brewer` to use predefined palettes:
+```{r}
+#| echo: false
+# list of palettes here: https://jmsallan.netlify.app/blog/the-brewer-palettes/
+```
+
+
+```{r}
+#| fig-height: 3
+#| fig-width: 6
+ggplot2::diamonds %>%
+  filter(price <6000) %>%
+  ggplot(aes(x = price, fill = cut)) +
+  geom_histogram(position = "dodge", binwidth = 1000) + 
+  scale_fill_brewer(palette = "YlOrRd")
+```
+
+
+
+```{r}
+# Categorical palette
+# https://analysisfunction.civilservice.gov.uk/support/communicating-analysis/introduction-to-data-visualisation-e-learning/data-visualisation-e-learning-module-3-accessibility-and-colour-palettes/
+# note: recommendation is to use a max of 4 colours
+categorical = c("#12436D", "#28A197", "#801650", "#F46A25", "#3D3D3D", "#A285D1")
+show_col(categorical)
+```
+
+
+
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+# example
+ggplot2::midwest %>%
+  filter(county %in% c("ADAMS", "ALEXANDER", "BOND", "BOONE", "BROWN")) %>%
+  ggplot(aes(x=county, y=poptotal, fill = county)) +
+  geom_col(position = position_dodge()) +
+  scale_fill_brewer(type = "seq", palette = "Set1")
+```
+
+
+
+# Odd bits for sorting later
+```{r}
+#| eval: false
+geom_hline
+geom_vline
+```
+
+
+# Combining and saving plots
+## Facetting
+To facet by a single variable, use `facet_wrap`. Add `scales = "free"` if axes are different for each group. 
+```{r}
+#| fig-height: 5
+#| fig-width: 6
+palmerpenguins::penguins %>% 
+  ggplot(aes(x=bill_length_mm, y=flipper_length_mm)) + 
+  geom_point(aes(colour = island)) +
+  facet_wrap(~ species, 
+             nrow = 3,
+             scales = "fixed") +
+  theme_bw()
+```
+
+To facet by two variables, use `facet_grid`
+```{r}
+#| fig-height: 5
+#| fig-width: 6
+palmerpenguins::penguins %>% 
+  drop_na(sex) %>%
+  ggplot(aes(x=bill_length_mm, y=flipper_length_mm)) + 
+  geom_point() +
+  facet_grid(species ~ sex) +
+  theme_bw()
+```
+
+
+
+
+
+## Arranging
+Use `ggarrange` from the `ggpubr` package to arrange plots.
+```{r}
+#| fig-height: 3.5
+#| fig-width: 7
+# plot 1
+a = gcookbook::countries %>%
+    filter(Name == "United Kingdom") %>%
+    ggplot(aes(x = Year, y = GDP)) + 
+    geom_line() +
+    scale_y_continuous(labels = label_comma(big.mark = ",")) +
+    theme_bw()
+
+# plot 2
+b = gcookbook::countries %>%
+    filter(Name == "United Kingdom") %>%
+    ggplot(aes(x = Year, y = healthexp)) + 
+    geom_line() +
+    scale_y_continuous(labels = label_comma(big.mark = ",")) +
+    theme_bw()
+
+# combine
+ggarrange(a, b, 
+          ncol=2, 
+          widths = c(1,1),
+          labels = c("A", "B"))
+```
+
+You can also nest ggarrange calls, e.g. if you have 3 or more plots
+```{r}
+#| fig-width: 7
+c = gcookbook::countries %>%
+    filter(Name == "United Kingdom") %>%
+    ggplot(aes(x = Year, y = infmortality)) + 
+    geom_line() +
+    theme_bw()
+
+ggarrange(a,
+          ggarrange(b, c, ncol = 2),
+          nrow = 2)
+```
+
+It's also possible to use a shared legend and title (if applicable to all plots)
+```{r}
+#| fig-width: 8
+a = gcookbook::countries %>%
+    filter(str_detect(Name, "United")) %>%
+    ggplot(aes(x = Year, y = GDP)) + 
+    geom_line(aes(colour = Name, linetype = Name), linewidth = 0.8) +
+    theme_bw()
+
+# plot 2
+b = gcookbook::countries %>%
+    filter(str_detect(Name, "United")) %>%
+    ggplot(aes(x = Year, y = healthexp)) + 
+    geom_line(aes(colour = Name, linetype = Name), linewidth = 0.8) +
+    theme_bw()
+
+# wrap in annotate_figure for common title
+annotate_figure(ggarrange(a, b, ncol=2,
+          common.legend = T,
+          legend = "bottom"),
+    top = "Common title",
+    fig.lab.pos = "top",
+    fig.lab.size = 14)
+```
+
+## Saving
+```{r}
+#| eval: false
+my_plot = ggplot(...)
+
+ppi = 300  # pixels per inch
+png("file_name.png", width = 4*ppi, height = 4*ppi, res = ppi)
+my_plot
+dev.off()
+```
+
