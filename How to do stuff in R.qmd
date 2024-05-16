@@ -35,6 +35,28 @@ p_load(
   gt)
 ```
 
+# Update packages
+After updating your version of R (not RStudio), you will have a brand new directory devoid of packages you installed with the previous R version. Below is a way to find a list of all these packages and reinstall them with the new version of R (as described [here](https://stackoverflow.com/questions/61808153/installr-does-not-copy-over-packages-to-new-version-of-r)).
+```{r}
+# before installing, find where the current library is stored:
+.libPaths()
+# copy and paste this in a text document 
+
+# once you have updated R, copy the path of the old library into lib.loc below 
+old_packages <- installed.packages(lib.loc = "/Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library")
+
+# create a list of currently installed packages
+new_packages <- installed.packages()
+
+# create a list of the missing packages that need to be installed
+missing_df <- as.data.frame(old_packages[
+  !old_packages[, "Package"] %in% new_packages[, "Package"], 
+])
+
+# install missing packages
+install.packages(missing_df$Package, Ncpus = 3)
+```
+
 
 # Read data
 ## Read from local storage
