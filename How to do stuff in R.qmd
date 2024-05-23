@@ -14,7 +14,7 @@ format:
     df-print: kable
     code-fold: false
     theme: default
-    fontsize: 0.9em
+    fontsize: 1em
 execute:
   warning: false
   echo: true
@@ -733,11 +733,12 @@ df %>% mutate(review_check = case_when(
 `str_replace_all` (this replaces all matches - `str_replace` only replaces the first match)
 ```{r}
 # Recipe: replace "[1]" with a longer description, e.g. "1 audible time alert"
-df$var_long = str_replace_all(
-  df$var,
+df = df %>%
+  mutate(var = str_replace_all(var,
   c("[1]" = "1 audible time alert",
     "[2]" = "2 audio version",
     "[3]" = "3 colour contrast"))
+  )
 ```
 
 ## Tidy up strings
@@ -754,26 +755,32 @@ starwars %>% mutate(gender = str_to_title(gender))
 string = "This is a string."
 str_length(string)
 ```
-`str_trim`
+
+`str_trim` removes whitespace from either or both sides
 ```{r}
+#| eval: true
 string1 = "    This is a string with padding           "
 str_trim(string1, side = c("both"))
 ```
 
-`str_squish`
+`str_squish` removes whitespace from both sides and replaces internal whitespace with a single space.
 ```{r}
+#| eval: true
 string2 = " This is a string with padding and a full stop     ."
 str_squish(string2)
 ```
 
-`str_trunc` - with and without ellipsis
+`str_trunc` truncates a string to the desired length. Note: by default, it will provide ellipsis.
 ```{r}
 #| eval: true
 long_string = "The Sleepwalkers: How Europe Went to War in 1914"
-str_trunc(long_string, 16, ellipsis = "")
-str_trunc(long_string, 19) # default ellipsis is ...
-```
 
+# default with ellipsis (note that ellipsis starts AFTER character 19)
+str_trunc(long_string, 19)
+
+# turn off ellipsis
+str_trunc(long_string, 19, ellipsis = "")
+```
 
 
 ## Subset strings
