@@ -32,7 +32,12 @@ p_load(
   tidyverse,
   janitor,
   nycflights13,
-  gt)
+  gt,
+  titanic,
+  psych,
+  rstatix,
+  ggcorrplot,
+  broom)
 ```
 
 # Update packages
@@ -792,7 +797,8 @@ str_sub(string, 3, 6)
 ```
 
 ```{r}
-# can be used as part of a case_when, e.g. check that the first element of TotalMarkA is NOT "E" or "%"
+# can be used as part of a case_when, e.g. check that the first element of TotalMarkA is 
+# NOT "E" or "%"
 case_when(
   !str_sub(TotalMarkA, 1, 1) %in% c("E", "%")
 )
@@ -841,6 +847,24 @@ filter(date > as.Date("2001-01-19") & date < as.Date("2003-03-21"))
 
 
 # Summarising
+`get_summary_stats` from rstatix. provides different `type`s of summary statistics:
+
+* full
+* common
+* robust (same as median_iqr)
+* mean_sd
+* mean_ci
+* median_iqr
+* median_mad
+```{r}
+#| eval: true
+mtcars %>%
+  group_by(cyl) %>%
+  get_summary_stats(c(mpg, wt), 
+                    type = "mean_sd")
+```
+
+
 ## Crosstabulation
 `janitor::tabyl`
 
@@ -1353,5 +1377,205 @@ xl_output = function(form = NULL,
   # save
   saveWorkbook(workbook, file = paste("MTC2022", "_", ref, "_", foc, "_", form, ".xlsx", sep=""), overwrite = TRUE)
 }
+```
+
+
+# Statistical tests
+
+## Chi-square
+Example: did the survival rate on the Titanic differ according to whether passengers were in first, second, or third class?
+```{r}
+#| eval: true
+# extract data on titanic survival
+titanic = titanic::titanic_train
+
+titanic %>%
+  tabyl(Survived, Pclass) %>%
+  adorn_title()
+
+# look at observed - save this table for later
+results = table(titanic$Survived, titanic$Pclass)
+```
+Conduct the chi-square test on this table
+```{r}
+#| eval: true
+options(scipen=999)
+
+chisq.test(results)
+
+# look at expected frequencies. All should be > 5, otherwise consider fisher.test
+chisq.test(results)$expected 
+```
+
+Residuals
+```{r}
+#| eval: true
+# positive residual indicates a positive correlation between the two variables; negative indicates negative. 
+chisq.test(results)$residuals
+
+# visualise residuals
+# corrplot(chisq.test(results)$residuals, is.cor = FALSE)
+```
+
+## Correlation
+Use `cor()` to get correlation coefficients. Note the following options:
+
+* `method` = c("pearson", "spearman", "kendall")
+* `use` = c("everything", "pairwise", "pairwise.complete.obs")
+
+```{r}
+#| eval: true
+
+# data
+states = data.frame(state.x77)
+
+# compute a correlation between two variables:
+cor(states$Population, states$Murder, method = "pearson")
+
+# compute a correlation matrix for all variables (must be numeric)
+cor(states, use = "everything", method = "pearson")
+```
+
+```{r}
+# Delete the upper triangle
+state_cor = cor(states, use="everything", method="pearson")
+state_cor[upper.tri(state_cor)] <- NA
+```
+
+### Statistical test for significance
+```{r}
+#| eval: true
+# for a single pair of variables
+cor.test(states$Illiteracy, states$Murder, method = "pearson")
+
+# for all variables
+psych::corr.test(states, method = "pearson", use = "complete")
+```
+
+### Correlation with `rstatix` 
+Correlation tests for specified set of variables Optionally, filter out autocorrelations with `cor != 1` and create a new variable for the coefficient of determination (R2) where 0.01 is small, 0.09 to 0.25 is medium, and > 0.25 is a large effect size. 
+```{r}
+#| eval: true
+states %>% rstatix::cor_test(vars = c(Population, Income, Illiteracy), 
+                             method = "pearson", 
+                             use = "complete.obs") %>%
+  filter(cor != 1) %>%
+  mutate(R2 = cor^2)
+```
+
+Correlation tests for all variables
+```{r}
+states %>% rstatix::cor_test(method = "pearson", use = "complete.obs")
+```
+
+### Graphing
+```{r}
+#| eval: true
+corr <- round(cor(states), 3)
+p.mat <- cor_pmat(corr)
+
+ggcorrplot(corr, method="square", type="upper", 
+           lab=T, lab_size = 3, tl.cex = 10, digits=4, p.mat= p.mat) +
+  theme(legend.position = "none")
+```
+
+
+## T-test
+Example: are SAT scores significant different according to gender? Conduct a Bartlett Test first to determine whether variances among the two groups are equal - this will determine which variant of the T-test to use.
+```{r}
+#| eval: true
+bartlett.test(psych::sat.act$SATV ~ psych::sat.act$gender)
+```
+
+Alternatively, use a Wilcox (Mann-Whitney/U) test
+```{r}
+#| eval: true
+# if p > .05, assume equal variances
+wilcox.test(psych::sat.act$SATV ~ psych::sat.act$gender)
+```
+
+The main base R function is `t.test`. Note that `var.equal` controls whether a Student t-test or Welch t-test is conducted. A Welch test is a better alternative because it is less restrictive and doesn't assume equality of variances.
+
+```{r}
+#| eval: true
+# Student T-test
+t.test(psych::sat.act$SATV ~ psych::sat.act$gender, var.equal = T, paired = F)
+t.test(psych::sat.act$SATV ~ psych::sat.act$gender, var.equal = F, paired = F)
+```
+
+To conduct t-tests among multiple variables simultaneously. Example: compare petal length, petal width, sepal length, and sepal width among the three plant species Setosa, Versicolor, and Virginica. Add a Benjimini-Hochberg correction for multiple comparisons and custom cutpoints for p-value asterisks. Note that `estimate1` and `estimate2` indicate the mean for each group, whereas `estimate` is the t-test coefficient itself. 
+```{r}
+#| eval: true
+iris %>%
+  pivot_longer(-c(Species)) %>%
+  group_by(name) %>%
+  t_test(value ~ Species, paired = F, detailed = T) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance(cutpoints = c(0, 0.01, 0.05, 1),
+                   symbols = c("**", "*", "")) %>%
+  head()
+```
+
+## Effect size
+Compute effect sizes to accompany the above t-test results (Cohen's D with Hedges correction):
+```{r}
+#| eval: true
+iris %>%
+  pivot_longer(-c(Species)) %>%
+  group_by(name) %>%
+  cohens_d(value ~ Species, paired = F, hedges.correction = T) %>%
+  head()
+```
+
+## Regression
+```{r}
+#| eval: true
+
+# model set up
+# notes:
+# - use scale(wt) to center variable
+# - use I(weight^2) to add quadratic term
+
+model = lm(mpg ~ wt * cyl + gear, data = mtcars)
+
+# model output
+summary(model)
+```
+
+Alternatively, use `broom` to get tidy model output
+```{r}
+#| eval: true
+
+broom::tidy(model, confint=T)
+broom::glance(model) # gives r2, AIC/BIC, etc
+```
+
+Other model outputs
+```{r}
+coefficients(model)
+confint(model)
+residuals(model)
+plot(model) # will produce a range of plots
+
+# predict with new data
+new.height = data.frame(height = c(99, 105, 166))
+predict(model, newdata = new.height)
+```
+
+
+Get stats for each observation, inc fitted, std. resid, hat, and cookd. 
+```{r}
+# these stats are simply added as new columns to the original dataset (handy!)
+augment(model) %>% head()
+```
+
+Model comparison
+
+```{r}
+# Compare models
+anova(model, model2)
+
+# chi-square (deviance)
+anova(m1, test = "Chisq")
 ```
 
