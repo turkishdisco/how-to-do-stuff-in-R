@@ -150,6 +150,32 @@ gcookbook::heightweight %>%
 ```
 
 
+Use `geom_segment` to add lines from points to fitted regression slope
+```{r}
+#| echo: false
+# prepare data
+x = c(12,	3,	5,	3,	1,	15,	18,	10,	8,	3)
+y = c(10,	2,	4,	9,	5,	13,	14,	11,	12,	4)
+df = data.frame(x, y)
+
+mod <- lm(y ~ x, data = df)
+df <- transform(df, Fitted = fitted(mod))
+```
+
+
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+
+ggplot(df, aes(x=x, y=y)) + 
+  geom_point() + 
+  theme_classic() + 
+  geom_smooth(method="lm", se=F) + 
+  geom_segment(aes(x = x, y = y,
+                   xend = x, yend = Fitted), linetype = "dashed")
+```
+
+
 ### Linetypes
 ```{r}
 #| echo: false
