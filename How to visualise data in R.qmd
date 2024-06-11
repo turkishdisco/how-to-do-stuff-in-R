@@ -36,7 +36,8 @@ p_load(
   RColorBrewer,
   ggpubr,
   directlabels,
-  ggrepel)
+  ggrepel,
+  gghighlight)
 ```
 
 Note: this guide uses built-in datasets from the following, amongst others:
@@ -673,6 +674,21 @@ countries %>%
                         breaks = c("United Kingdom", "United Arab Emirates", "United States"),
                         labels = c("UK", "UAE", "US"),
                         name = "Country")
+```
+
+Alternatively, use `gghighlight`:
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+
+countries %>% 
+  filter(str_detect(Name, "Republic")) %>%
+  ggplot(aes(x=Year, y=GDP)) + 
+  geom_line(aes(colour = Name), size = 0.8) +
+  gghighlight(str_detect(Name, "Czech"),
+              label_params = list(size = 3),
+              label_key = Code)
+
 ```
 
 
