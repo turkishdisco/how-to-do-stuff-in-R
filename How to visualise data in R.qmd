@@ -34,7 +34,10 @@ p_load(
   palmerpenguins,
   scales,
   RColorBrewer,
-  ggpubr)
+  ggpubr,
+  directlabels,
+  ggrepel,
+  gghighlight)
 ```
 
 Note: this guide uses built-in datasets from the following, amongst others:
@@ -147,6 +150,32 @@ gcookbook::heightweight %>%
   ggplot(aes(x=heightIn, y=weightLb)) +
   geom_point(aes(colour=sex)) +
   geom_smooth(method="lm", aes(colour=sex))
+```
+
+
+Use `geom_segment` to add lines from points to fitted regression slope
+```{r}
+#| echo: false
+# prepare data
+x = c(12,	3,	5,	3,	1,	15,	18,	10,	8,	3)
+y = c(10,	2,	4,	9,	5,	13,	14,	11,	12,	4)
+df = data.frame(x, y)
+
+mod <- lm(y ~ x, data = df)
+df <- transform(df, Fitted = fitted(mod))
+```
+
+
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+
+ggplot(df, aes(x=x, y=y)) + 
+  geom_point() + 
+  theme_classic() + 
+  geom_smooth(method="lm", se=F) + 
+  geom_segment(aes(x = x, y = y,
+                   xend = x, yend = Fitted), linetype = "dashed")
 ```
 
 
@@ -523,6 +552,88 @@ gcookbook::countries %>%
 ```
 
 
+## Direct labels
+Sometimes a legend isn't necessary or the right aesthetic choice. Instead, it's possible to append labels directly to dots or lines using `directlabels` or `ggrepel`.
+```{r}
+#| echo: false
+# data to use
+df = structure(list(time_period = c(200910, 201011, 201112, 201213, 
+201314, 201415, 201516, 201617, 201718, 201819, 201920, 202021, 
+202122, 202223, 200910, 201011, 201112, 201213, 201314, 201415, 
+201516, 201617, 201718, 201819, 201920, 202021, 202122, 202223, 
+200910, 201011, 201112, 201213, 201314, 201415, 201516, 201617, 
+201718, 201819, 201920, 202021, 202122, 202223), subject = c("Drama", 
+"Drama", "Drama", "Drama", "Drama", "Drama", "Drama", "Drama", 
+"Drama", "Drama", "Drama", "Drama", "Drama", "Drama", "Media/Film/TV", 
+"Media/Film/TV", "Media/Film/TV", "Media/Film/TV", "Media/Film/TV", 
+"Media/Film/TV", "Media/Film/TV", "Media/Film/TV", "Media/Film/TV", 
+"Media/Film/TV", "Media/Film/TV", "Media/Film/TV", "Media/Film/TV", 
+"Media/Film/TV", "Music", "Music", "Music", "Music", "Music", 
+"Music", "Music", "Music", "Music", "Music", "Music", "Music", 
+"Music", "Music"), total_exam_entries = c(80765, 74755, 70371, 
+69754, 70984, 70851, 67890, 62112, 57176, 57659, 58070, 57126, 
+53585, 49568, 58586, 51783, 49478, 48698, 51328, 51602, 46830, 
+40843, 37912, 30494, 29052, 27468, 25483, 26988, 45433, 43157, 
+40761, 41256, 42446, 43698, 41650, 38897, 34709, 34580, 34672, 
+35451, 33893, 29870)), row.names = c(NA, -42L), class = c("tbl_df", 
+"tbl", "data.frame"))
+```
+
+Using `directlabels` and `geom_dl`. Note that other method options include `first.points` and `last.qp` which adjusts the size of the text automatically). This also requires clipping to be turned off and for the plot margins to be extended (otherwise text won't be displayed properly).
+```{r}
+#| fig-height: 3.5
+#| fig-width: 5
+df %>%
+  ggplot(aes(x = time_period, y = total_exam_entries)) +
+  geom_line(aes(colour = subject), linewidth = 0.8) +
+  ylab("Entries") + 
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle=270, vjust = 0.5),
+        legend.position = "none",
+        axis.line = element_line(colour="black"),
+        panel.grid.minor = element_blank()) +
+  scale_y_continuous(labels = scales::label_comma(big.mark = ","),
+                     limits = c(0,80000)) +
+  scale_x_continuous(breaks = c(200910, 201011, 201112, 201213, 201314, 201415, 201516, 201617, 
+                                201718, 201819, 201920, 202021, 202122, 202223),
+                     labels = c("2009/10", "2010/11", "2011/12", "2012/13", "2013/14", "2014/15",
+                                "2015/16", "2016/17", "2017/18", "2018/19", "2019/20", "2020/21",  
+                                "2021/22", "2022/23")) +
+  geom_dl(aes(label=subject), method=list("last.points", "bumpup", cex=0.8)) +
+  coord_cartesian(clip="off") +
+  theme(plot.margin = unit(c(1,4,1,1), "lines")) 
+```
+
+Using `geom_label_repel`. Note that this requires a bit more wrangling to make sure only the final points are displayed (using the `data` argument) - otherwise every single point will be labelled.
+```{r}
+#| fig-height: 3.5
+#| fig-width: 5
+
+df %>%
+  ggplot(aes(x = time_period, y = total_exam_entries, label = subject)) +
+  geom_line(aes(colour = subject), linewidth = 0.8) +
+  ylab("Entries") + 
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle=270, vjust = 0.5),
+        legend.position = "none",
+        axis.line = element_line(colour="black"),
+        panel.grid.minor = element_blank()) +
+  scale_y_continuous(labels = scales::label_comma(big.mark = ","),
+                     limits = c(0,80000)) +
+  scale_x_continuous(breaks = c(200910, 201011, 201112, 201213, 201314, 201415, 201516, 201617, 
+                                201718, 201819, 201920, 202021, 202122, 202223),
+                     labels = c("2009/10", "2010/11", "2011/12", "2012/13", "2013/14", "2014/15",
+                                "2015/16", "2016/17", "2017/18", "2018/19", "2019/20", "2020/21",  
+                                "2021/22", "2022/23")) +
+  coord_cartesian(clip = "off") +
+  geom_label_repel(aes(label = subject), 
+                   label.padding = .15, 
+                   data = df %>% group_by(subject) %>% filter(time_period == max(time_period)),
+                   size = 3, hjust = 0.5, nudge_x=0.5)
+
+```
+
+
 # Other things
 ## Flip coordinates
 ```{r}
@@ -580,6 +691,21 @@ countries %>%
                         breaks = c("United Kingdom", "United Arab Emirates", "United States"),
                         labels = c("UK", "UAE", "US"),
                         name = "Country")
+```
+
+Alternatively, use `gghighlight`:
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+
+countries %>% 
+  filter(str_detect(Name, "Republic")) %>%
+  ggplot(aes(x=Year, y=GDP)) + 
+  geom_line(aes(colour = Name), size = 0.8) +
+  gghighlight(str_detect(Name, "Czech"),
+              label_params = list(size = 3),
+              label_key = Code)
+
 ```
 
 
