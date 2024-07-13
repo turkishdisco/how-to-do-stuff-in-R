@@ -315,6 +315,23 @@ palmerpenguins::penguins %>%
                  alpha = 0.7)
 ```
 
+Example of a function to iterate through multiple histograms, by group:
+```{r}
+# firstly make a vector of all the variable names you want to plot
+vars = c("bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g")
+
+# then create a custom graphing function
+hist_fun = function(x, y) {
+  ggplot(palmerpenguins::penguins, aes(x = .data[[x]], fill = .data[[y]], colour = .data[[y]]) ) +
+    geom_histogram(alpha=0.5, position = "identity") +
+    theme_bw() +
+    ggtitle(x)
+}
+
+# use purrr::map to cycle through vars to produce plots, with a constant grouping factor
+map(vars, ~ hist_fun(.x, "sex") )
+```
+
 
 ## Density
 ```{r}
