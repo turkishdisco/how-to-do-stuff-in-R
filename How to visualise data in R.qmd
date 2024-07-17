@@ -279,6 +279,7 @@ palmerpenguins::penguins %>%
            width= 0.8) +
   ylab("Proportion")
 ```
+
 Text is dealt with later on, but to add figures to the above figure:
 ```{r}
 #| fig-height: 3.5
@@ -326,13 +327,14 @@ palmerpenguins::penguins %>%
 ```
 
 ## Dotplot
-For when there isn't a huge amount of data
+For when there isn't a huge amount of data. Each dot represents a single observation.
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
 palmerpenguins::penguins %>%
+  sample_n(125, replace=F) %>%
   ggplot(aes(x=body_mass_g)) +
-  geom_dotplot()
+  geom_dotplot(dotsize = 1, width = 1)
 ```
 
 
