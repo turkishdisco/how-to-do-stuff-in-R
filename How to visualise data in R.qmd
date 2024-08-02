@@ -279,6 +279,7 @@ palmerpenguins::penguins %>%
            width= 0.8) +
   ylab("Proportion")
 ```
+
 Text is dealt with later on, but to add figures to the above figure:
 ```{r}
 #| fig-height: 3.5
@@ -325,8 +326,20 @@ palmerpenguins::penguins %>%
               draw_quantiles = c(0.5)) # 0.5 is median
 ```
 
+## Dotplot
+For when there isn't a huge amount of data. Each dot represents a single observation.
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+palmerpenguins::penguins %>%
+  sample_n(125, replace=F) %>%
+  ggplot(aes(x=body_mass_g)) +
+  geom_dotplot(dotsize = 1, width = 1)
+```
+
 
 ## Histogram
+For when there's more data, or binning is better.
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
@@ -346,23 +359,25 @@ palmerpenguins::penguins %>%
 
 Example of a function to iterate through multiple histograms, by group:
 ```{r}
+#| fig-height: 3
+#| fig-width: 4
 # firstly make a vector of all the variable names you want to plot
-vars = c("bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g")
+vars = c("bill_length_mm", "flipper_length_mm")
 
 # then create a custom graphing function
-hist_fun = function(x, y) {
-  ggplot(palmerpenguins::penguins, aes(x = .data[[x]], fill = .data[[y]], colour = .data[[y]]) ) +
+hist_fun = function(data, x, y) {
+  ggplot(data, aes(x = .data[[x]], fill = .data[[y]]) ) +
     geom_histogram(alpha=0.5, position = "identity") +
     theme_bw() +
     ggtitle(x)
 }
 
 # use purrr::map to cycle through vars to produce plots, with a constant grouping factor
-map(vars, ~ hist_fun(.x, "sex") )
+map(vars, ~ hist_fun(data = palmerpenguins::penguins, .x, "sex") )
 ```
 
-
 ## Density
+For large amounts of data. Use `bw` argument to change bandwidth (e.g. if you want more smoothing).
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
@@ -767,7 +782,7 @@ To facet by a single variable, use `facet_wrap`. Add `scales = "free"` if axes a
 #| fig-height: 5
 #| fig-width: 6
 palmerpenguins::penguins %>% 
-  ggplot(aes(x=bill_length_mm, y=flipper_length_mm)) + 
+  ggplot(aes(x = bill_length_mm, y = flipper_length_mm)) + 
   geom_point(aes(colour = island)) +
   facet_wrap(~ species, 
              nrow = 3,
