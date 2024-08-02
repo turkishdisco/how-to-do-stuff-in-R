@@ -1501,8 +1501,8 @@ The main base R function is `t.test`. Note that `var.equal` controls whether a S
 ```{r}
 #| eval: true
 # Student T-test
-t.test(psych::sat.act$SATV ~ psych::sat.act$gender, var.equal = T, paired = F)
-t.test(psych::sat.act$SATV ~ psych::sat.act$gender, var.equal = F, paired = F)
+t.test(psych::sat.act$SATV ~ psych::sat.act$gender, var.equal = T)
+t.test(psych::sat.act$SATV ~ psych::sat.act$gender, var.equal = F)
 ```
 
 To conduct t-tests among multiple variables simultaneously. Example: compare petal length, petal width, sepal length, and sepal width among the three plant species Setosa, Versicolor, and Virginica. Add a Benjimini-Hochberg correction for multiple comparisons and custom cutpoints for p-value asterisks. Note that `estimate1` and `estimate2` indicate the mean for each group, whereas `estimate` is the t-test coefficient itself. 
