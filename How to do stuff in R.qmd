@@ -347,6 +347,8 @@ us_rent_income %>%
   head()
 ```
 
+Note that the `id_cols` argument can be used if your pivot results in NAs for one level of a factor. In the above, this would be `GEOID`. 
+
 ### Melt and cast with `data.table`
 ```{r}
 melted_df = data.table::melt(df, 
