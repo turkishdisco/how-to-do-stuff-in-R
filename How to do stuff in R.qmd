@@ -843,6 +843,24 @@ str_detect(string, "a$")
 
 
 # Dates and times
+Convert character to date
+```{r}
+#| eval: true
+my_date = "08/10/2021"
+as.Date(my_date, "%d/%m/%Y")
+```
+
+To extract the year from a `date` object:
+```{r}
+#| eval: true
+my_date = as.Date("08/10/2021", "%d/%m/%Y")
+
+year = format(as.Date(my_date, format="%d/%m/%Y"),"%Y")
+year
+```
+
+
+Filtering dates
 ```{r}
 filter(date > as.Date("2001-01-19") & date < as.Date("2003-03-21")) 
 ```
