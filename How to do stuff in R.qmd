@@ -850,13 +850,21 @@ my_date = "08/10/2021"
 as.Date(my_date, "%d/%m/%Y")
 ```
 
-To extract the year from a `date` object:
+There are two ways to extract the year from a `date` object:
 ```{r}
 #| eval: true
 my_date = as.Date("08/10/2021", "%d/%m/%Y")
 
 year = format(as.Date(my_date, format="%d/%m/%Y"),"%Y")
 year
+```
+The method above results in character type, e.g. "2021". It may be better to use `lubridate` to extract the year as this is simpler and results in a double type which is more compatible with graphing methods:
+```{r}
+#| eval: true
+my_date = as.Date("08/10/2021", "%d/%m/%Y")
+my_date
+my_year_dbl = lubridate::year(my_date)
+my_year_dbl
 ```
 
 
