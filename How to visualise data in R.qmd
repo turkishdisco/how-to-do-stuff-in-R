@@ -177,6 +177,23 @@ ggplot(df, aes(x=x, y=y)) +
   geom_segment(aes(x = x, y = y,
                    xend = x, yend = Fitted), linetype = "dashed")
 ```
+If you want to sum a value across factor levels using a linegraph, you need to use `stat_summary`:
+```{r}
+#| echo: false
+df = data.frame(
+  year = c(2011, 2011, 2011, 2012, 2012, 2012, 2013, 2013, 2013, 2014, 2014, 2014),
+  value = c(10, 15, 10, 20, 10, 10, 15, 30, 20, 10, 20, 10)
+)
+```
+
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+df %>%
+  ggplot(aes(x=year, y=value)) +
+  stat_summary(fun = "sum", geom = "line")
+```
+
 
 
 ### Linetypes
@@ -515,6 +532,13 @@ p + scale_y_continuous(labels = label_comma(big.mark = ","))
 # scale_x_continuous(limits = c(0, 100))
 ```
 
+A tip: if you want a y-axis to begin at zero but don't know the maximum, you can do this:
+```{r}
+#| eval: false
+p + expand_limits(y = 0)
+```
+
+
 # Themes
 To add a pre-defined theme to a plot: `p + theme_*()`.
 
@@ -542,12 +566,11 @@ ggarrange(grey, bw, line, minimal, classic, void)
 #| fig-height: 3
 #| fig-width: 5
 
-p + theme(
-  axis.line = element_line(colour="black"),
-  panel.grid.major = element_line(colour="grey"),
-  panel.background = element_rect(fill = "white", 
-            colour = NA)
-)
+p + theme(axis.line = element_line(colour="black"),
+        panel.grid.major.y = element_line(colour="grey90"),
+        panel.grid.major.x = element_blank(), 
+        panel.background = element_rect(fill = "white", 
+                                        colour = NA))
 ```
 
 
@@ -688,6 +711,20 @@ ggplot2::diamonds %>%
   geom_histogram(position = "dodge", binwidth = 1000) +
   scale_fill_manual(values = rev(yellows))
 ```
+
+An example of how to specify manual linetype and colour. Note that these must use the same breaks in order to be presented as a single legend (as opposed to separate legends for linetype and for colour):
+```{r}
+#| eval: false
+scale_linetype_manual(name = "",
+                        values = c("solid", "dashed"),
+                        breaks = c("pay", "median_after_tax"),
+                        labels = c("Pay", "Median UK")) +
+scale_colour_manual(name = "",
+                        values = c("black", "red"),
+                        breaks = c("pay", "median_after_tax"),
+                        labels = c("Pay", "Median UK"))
+```
+
 
 Use a focus palette to bring attention to one particular series, while keeping the other data there for comparison.
 ```{r}
