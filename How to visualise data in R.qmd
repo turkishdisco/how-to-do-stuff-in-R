@@ -421,6 +421,7 @@ palmerpenguins::penguins %>%
 
 
 # Plotting statistical summary data
+It's possible to plot different statistical summaries within ggplot2, for instance the median.
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
@@ -429,6 +430,33 @@ palmerpenguins::penguins %>%
   geom_bar(fun = "median", 
            stat = "summary")
 ```
+
+However, a more powerful method is to use `stat_summary`.
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+palmerpenguins::penguins %>%
+  ggplot(aes(x=species, y=flipper_length_mm)) +
+  stat_summary(fun = "mean", geom = "point") +
+  stat_summary(fun = "mean", geom = "line", aes(group=1)) 
+```
+Add confidence intervals (requires the `Hmisc` package):
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+mpg %>%
+  ggplot(aes(x = reorder(class, hwy), y = hwy)) +
+  stat_summary(fun.data = "mean_cl_normal",
+               fun.args = list(
+                 conf.int = .95
+               ),
+               geom = "errorbar",
+               width = .4) +
+  stat_summary(fun = "mean", 
+               geom = "point")
+```
+
+
 
 ## Pointrange
 ```{r}
