@@ -366,7 +366,9 @@ cast_df = data.table::dcast(melted_df,
 #| eval: true
 c_list = data.frame(
   a = c("item1,item2,item3"),
-  b = c("item2,item3"))
+  b = c("item1,item2,item3"))
+
+c_list
 
 # separate items into new rows
 c_list %>% tidyr::separate_longer_delim(a, delim=",")
@@ -374,6 +376,21 @@ c_list %>% tidyr::separate_longer_delim(a, delim=",")
 # separate items into new cols
 c_list %>% tidyr::separate_wider_delim(a, delim=",", names = c("col1", "col2", "col3"))
 ```
+Another example - say you want to split this `measure` column into two columns, by the underscore delimiter and then pivot wider to see the values side by side for every measure.
+```{r}
+#| eval: true
+
+df = data.frame(
+  measure = c("TP_thresh", "TN_thresh", "FP_thresh", "FN_thresh", "TP_cut", "TN_cut", "FP_cut", "FN_cut"),
+  value = c(41, 203, 36, 6, 42, 181, 58, 5))
+  
+df
+
+df %>%
+  separate_wider_delim(measure, delim = "_", names = c("metric", "type")) %>%
+  pivot_wider(names_from = type, values_from = value)
+```
+
 
 `tidyr::unnest`
 Recipe: given a list of items for each row (e.g. `c("The Empire Strikes Back", "Revenge of the Sith" [...]`), extract each one into a new row.

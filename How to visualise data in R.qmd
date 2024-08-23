@@ -276,9 +276,11 @@ penguins %>%
 
 
 ### Stacked bar chart
+A recipe for when you already have a y-axis (e.g. counts or figures for each category of something).
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
+
 palmerpenguins::penguins %>%
   ggplot(aes(x = island, fill = sex)) +
   geom_bar(position = position_stack(), 
@@ -287,23 +289,51 @@ palmerpenguins::penguins %>%
 
 
 ## Proportional stacked bar
+When there is an explicit y-value:
+```{r}
+#| echo: false
+
+prop_df = data.frame(
+  group = c("a", "a", "b", "b"),
+  type = c("x", "y", "x", "y"),
+  count = c(11091, 4583, 3974, 10984)
+)
+```
+
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+
+prop_df
+
+prop_df %>%
+  ggplot(aes(x = group, y = count, fill = type)) +
+  geom_bar(position = "fill", stat="identity", width = 0.8) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1), 
+                     breaks = c(0, 0.25, 0.5, 0.75, 1)) +
+  ylab("Proportion")
+```
+
+When there is no explicit y-value (i.e. counts of a factor)
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
 palmerpenguins::penguins %>%
   ggplot(aes(x = island, fill = sex)) +
   geom_bar(position = position_fill(),
-           width= 0.8) +
+           width = 0.8) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1), 
+                     breaks = c(0, 0.25, 0.5, 0.75, 1)) +
   ylab("Proportion")
 ```
 
-Text is dealt with later on, but to add figures to the above figure:
+Text is dealt with later on, but to add figures to the above figure you need to manually calculate proportions for each cell:
 ```{r}
 #| fig-height: 3.5
 #| fig-width: 5
 palmerpenguins::penguins %>%
   group_by(island, sex) %>%
-  summarise(n = n()) %>%
+  summarise(n = n()) %>% # you may need to use sum() here instead of n()
   mutate(prop = n / sum(n)) %>%
   ggplot(aes(x = island, y = prop, fill = sex)) +
   geom_bar(stat = "identity", width = 0.8) +
@@ -374,7 +404,7 @@ palmerpenguins::penguins %>%
                  alpha = 0.7)
 ```
 
-Example of a function to iterate through multiple histograms, by group:
+Example of a function to iterate through multiple histograms, by group, using `purrr`:
 ```{r}
 #| fig-height: 3
 #| fig-width: 4
@@ -785,7 +815,6 @@ countries %>%
   gghighlight(str_detect(Name, "Czech"),
               label_params = list(size = 3),
               label_key = Code)
-
 ```
 
 
@@ -816,13 +845,23 @@ ggplot2::diamonds %>%
 categorical = c("#12436D", "#28A197", "#801650", "#F46A25", "#3D3D3D", "#A285D1")
 show_col(categorical)
 ```
+How to use a custom palette:
+```{r}
+#| fig-height: 3
+#| fig-width: 5  
+ggplot2::midwest %>%
+  filter(county %in% c("ADAMS", "ALEXANDER", "BOND", "BOONE", "BROWN")) %>%
+  ggplot(aes(x = county, y = poptotal, fill = county)) +
+  geom_col(position = position_dodge()) +
+  scale_fill_manual(values = categorical)
+```
 
 
-
+Using `scale_fill_brewer` palettes:
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
-# example
+
 ggplot2::midwest %>%
   filter(county %in% c("ADAMS", "ALEXANDER", "BOND", "BOONE", "BROWN")) %>%
   ggplot(aes(x=county, y=poptotal, fill = county)) +
@@ -835,8 +874,17 @@ ggplot2::midwest %>%
 # Odd bits for sorting later
 ```{r}
 #| eval: false
-geom_hline
-geom_vline
+```
+
+## Vertical and horizontal lines
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+mpg %>% 
+  ggplot(aes(x=displ, y = cty)) + 
+  geom_point() + 
+  geom_vline(xintercept = 4.5, colour = "red", linetype="dashed") +
+  geom_hline(yintercept = 22.5, colour = "purple", linetype = "twodash")
 ```
 
 
@@ -933,7 +981,9 @@ b = gcookbook::countries %>%
 annotate_figure(ggarrange(a, b, ncol=2,
           common.legend = T,
           legend = "bottom"),
-    top = "Common title",
+    top = text_grob("A common title", color = "red", face = "bold", size = 14),
+    bottom = text_grob("Data source: \n Countries data set", color = "blue",
+                                  hjust = 1, x = 0.99, face = "italic", size = 10),
     fig.lab.pos = "top",
     fig.lab.size = 14)
 ```
