@@ -935,15 +935,8 @@ ggplot2::diamonds %>%
   adorn_totals(c("row", "col")) %>%
   adorn_percentages("row") %>%
   adorn_pct_formatting()  %>%
-  adorn_ns(position = "front") %>%
+  adorn_ns(position = "front") %>% # use "rear" to switch position
   mutate(across(everything(), ~ str_replace_all(., "  ", " ")))
-
-# optional: pipe the above into this to remove percents from total columns/row
-# %>% mutate(across(-c(cut, Total), ~ case_when(
-#     cut == "Total" ~ as.character(parse_number(.)),
-#     TRUE ~.))) %>% 
-#   mutate(Total = parse_number(Total)) 
-
 ```
 
 
