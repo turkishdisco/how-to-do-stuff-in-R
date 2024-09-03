@@ -149,7 +149,9 @@ Adding a line of best fit
 gcookbook::heightweight %>%
   ggplot(aes(x=heightIn, y=weightLb)) +
   geom_point(aes(colour=sex)) +
-  geom_smooth(method="lm", aes(colour=sex))
+  geom_smooth(method = "lm",
+              fullrange = T,
+              aes(colour=sex))
 ```
 
 
@@ -470,6 +472,24 @@ palmerpenguins::penguins %>%
   stat_summary(fun = "mean", geom = "point") +
   stat_summary(fun = "mean", geom = "line", aes(group=1)) 
 ```
+
+Plot mean and standard deviation using `mean_sdl` (use the `mult` argument to change how many standard deviations are shown around the mean):
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+mpg %>%
+  ggplot(aes(x = reorder(class, hwy), y = hwy)) +
+  stat_summary(fun = mean,
+               geom="point") +
+  stat_summary(fun.data = mean_sdl,
+               fun.args = list(
+                 mult = 1
+               ),
+               geom = "errorbar",
+               width = .4)
+```
+
+
 Add confidence intervals (requires the `Hmisc` package):
 ```{r}
 #| fig-height: 3
@@ -590,10 +610,51 @@ p + scale_y_continuous(labels = label_comma(big.mark = ","))
 # scale_x_continuous(limits = c(0, 100))
 ```
 
+`coord_cartesian` and `coord_fixed` in action:
+```{r}
+#| eval: true
+#| fig-height: 3
+#| fig-width: 5
+iris %>%
+  ggplot(aes(x = Sepal.Length, y = Sepal.Width)) + geom_point() +
+  geom_smooth(aes(colour = Species)) +
+  coord_cartesian(xlim = c(4.5, 5.5))
+  
+# a 1-to-1 ratio would be a value of 1. A value <1 compresses the y-axis.
+# Also try e.g. coord_fixed(20/1), i.e. a 20-to-1 ratio where the x-axis is 20 times
+# as long as the y-axis
+  
+iris %>%
+  ggplot(aes(x = Sepal.Length, y = Sepal.Width)) + geom_point() +
+  geom_smooth(aes(colour = Species)) +
+  coord_fixed(0.5)
+```
+
+
 A tip: if you want a y-axis to begin at zero but don't know the maximum, you can do this:
 ```{r}
 #| eval: false
 p + expand_limits(y = 0)
+```
+
+Clipping determines whether to display elements that would lie outside the plot panel. Expanding sets a buffer margin around a plot to prevent overlapping.
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+
+ggplot(mtcars, aes(wt, mpg)) +
+  geom_point(size = 2) +
+  # zero expansion
+  coord_cartesian(expand = 0,
+                  clip = "off") +
+  ggtitle("Clipping off")
+
+ggplot(mtcars, aes(wt, mpg)) +
+  geom_point(size = 2) +
+  # zero expansion
+  coord_cartesian(expand = 0,
+                  clip = "on") +
+  ggtitle("Clipping on")
 ```
 
 
