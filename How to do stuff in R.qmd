@@ -296,13 +296,18 @@ starwars %>% mutate(across(where(is.character), ~ na_if(., "unknown")))
 
 
 ### Dropping NA values
-`dplyr::drop_na`
+Use `dplyr::drop_na` to drop all NA values
 ```{r}
 # Drop all
 airquality %>% drop_na()
 
 # Drop NA in specific columns
 airquality %>% drop_na(Ozone, Solar.R)
+```
+
+To remove rows that contain all NA (i.e. retain rows with some non-NA content):
+```{r}
+airquality[rowSums(is.na(airquality)) != ncol(airquality), ]
 ```
 
 
