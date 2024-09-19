@@ -15,6 +15,7 @@ format:
     code-fold: false
     theme: default
     fontsize: 1em
+    link-external-newwindow: true
 execute:
   warning: false
   echo: true
@@ -805,7 +806,7 @@ ggplot2::diamonds %>%
 
 
 
-# Colour palettes
+# Using colours
 ## Manual
 ```{r}
 # Sequential palettes
@@ -845,6 +846,7 @@ scale_colour_manual(name = "",
 ```
 
 
+
 Use a focus palette to bring attention to one particular series, while keeping the other data there for comparison.
 ```{r}
 #| fig-height: 3
@@ -879,33 +881,147 @@ countries %>%
 ```
 
 
-## Brewer
-`scale_*_brewer` to use predefined palettes:
+## Other colour scale options
 ```{r}
-#| echo: false
-# list of palettes here: https://jmsallan.netlify.app/blog/the-brewer-palettes/
+#| fig-height: 3
+#| fig-width: 5
+
+# if a fill or colour variable is continuous, the default scale will be scale_*_continuous,
+# so there's no need to specify it directly:
+p = gcookbook::heightweight %>%
+  ggplot(aes(x = heightIn, y = weightLb, colour = heightIn)) +
+  geom_point(size = 2)
+
+p +
+  #scale_colour_continuous() +
+  theme_void() +
+  ggtitle("scale_colour_continuous")
+
+p +
+  scale_colour_gradient(low = "white", high = "red", na.value = "black") +
+  theme_void() +
+  ggtitle("scale_colour_gradient")
+
+# scale_colour_gradient2 allows you to set a mid-point colour but you have to specify this from
+# the dataframe. Of course you don't have to use the median as the 'midpoint' here. 
+p +
+  scale_colour_gradient2(low = "blue", mid = "white", high = "red",
+  midpoint = median(gcookbook::heightweight$heightIn)) +
+  theme_void()
+
+# colour_gradientn allows you to specify your own set of colours for a whole spectrum.
+# note: if you don't specify a vector of values, the colours will be evenly positioned along
+# the scale. However, you can control this manually for instance if you want to highlight the very 
+# top values. Just specify a vector of values between 0 and 1 to correspond to how you want the 
+# colours mapped to the scale, e.g. values = c(1, 0.9, 0.8, 0.7, 0)
+p +
+  scale_colour_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
+                                    values = c(1, 0.9, 0.8, 0.7, 0)) +
+  theme_void() +
+  ggtitle("scale_colour_gradientn")
 ```
 
+## Brewer palettes
+`scale_*_brewer` to use predefined palettes. See a list of available palettes [here](https://jmsallan.netlify.app/blog/the-brewer-palettes/). 
+
+### Brewer monochrome palettes:
+
+* Blues
+* Greens
+* Purples
+* Greys
+* Oranges
+* Reds
 
 ```{r}
 #| fig-height: 3
 #| fig-width: 6
+
 ggplot2::diamonds %>%
   filter(price <6000) %>%
   ggplot(aes(x = price, fill = cut)) +
   geom_histogram(position = "dodge", binwidth = 1000) + 
-  scale_fill_brewer(palette = "YlOrRd")
+  scale_fill_brewer(palette = "Greens") +
+  theme_void()
+```
+### Brewer spectral palettes
+* BuGn
+* BuPu
+* GnBu
+* OrRed
+* PuBu
+* PuRd
+* RdPu
+* YlGn
+* PuBuGn
+* YlGnBu
+* YlOrBr
+* YlOrRd
+
+```{r}
+#| fig-height: 3
+#| fig-width: 6
+
+ggplot2::diamonds %>%
+  filter(price <6000) %>%
+  ggplot(aes(x = price, fill = cut)) +
+  geom_histogram(position = "dodge", binwidth = 1000) + 
+  scale_fill_brewer(palette = "YlOrRd") +
+  theme_void()
+```
+
+### Brewer diverging palettes
+
+* Spectral
+* RdYlGn
+* RdYlBu
+* RdGy
+* RdBu
+* PuOr
+* PRGn
+* PiYG
+* BrBG
+
+```{r}
+#| fig-height: 3
+#| fig-width: 6
+
+ggplot2::diamonds %>%
+  filter(price <6000) %>%
+  ggplot(aes(x = price, fill = cut)) +
+  geom_histogram(position = "dodge", binwidth = 1000) + 
+  scale_fill_brewer(palette = "Spectral") +
+  theme_void()
+```
+### Brewer qualitative palettes
+* Accent
+* Dark2
+* Paired
+* Pastel1 and Pastel2
+* Set1
+* Set2
+* Set3
+
+```{r}
+#| fig-height: 3
+#| fig-width: 6
+
+ggplot2::diamonds %>%
+  filter(price <6000) %>%
+  ggplot(aes(x = price, fill = cut)) +
+  geom_histogram(position = "dodge", binwidth = 1000) + 
+  scale_fill_brewer(palette = "Set2") +
+  theme_void()
 ```
 
 
-
+Example of a categorical palette from the [Analysis Function](https://analysisfunction.civilservice.gov.uk/support/communicating-analysis/introduction-to-data-visualisation-e-learning/data-visualisation-e-learning-module-3-accessibility-and-colour-palettes/). 
 ```{r}
-# Categorical palette
-# https://analysisfunction.civilservice.gov.uk/support/communicating-analysis/introduction-to-data-visualisation-e-learning/data-visualisation-e-learning-module-3-accessibility-and-colour-palettes/
 # note: recommendation is to use a max of 4 colours
 categorical = c("#12436D", "#28A197", "#801650", "#F46A25", "#3D3D3D", "#A285D1")
 show_col(categorical)
 ```
+
 How to use a custom palette:
 ```{r}
 #| fig-height: 3
