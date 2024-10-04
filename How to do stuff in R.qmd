@@ -132,6 +132,19 @@ con = dbConnect(odbc::odbc(),
                 Database = "MatchedAdminSQL",
                 Trusted_Connection = "yes")
 
+# Then load in data:
+# use dplyr for more efficiency
+# first step:
+my_tbl = tbl(con, sql("select * FROM [PDR].[Tier1].[Phonics_MasterView]") )
+
+# second step:
+my_df = my_tbl %>% 
+  filter(AcademicYear %in% c("202223"), Version=="F") %>% 
+  select(AcademicYear, PupilMatchingRefAnonymous) %>% 
+  collect()
+
+
+# Older method I used:
 # Read in entire table
 df = dbGetQuery(
   ILR_con,
@@ -937,7 +950,7 @@ Tip: for a two-way tabyl, remove double whitespaces by including a call to `str_
 # two-way tabyl
 
 ggplot2::diamonds %>%
-  tabyl(cut, color) %>%
+  tabyl(cut, color, show_na = T) %>%
   adorn_totals(c("row", "col")) %>%
   adorn_percentages("row") %>%
   adorn_pct_formatting()  %>%
