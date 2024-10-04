@@ -1048,20 +1048,18 @@ ggplot2::midwest %>%
 
 
 # Mapping
-Use the `sf` package and a shapefile to visualise data on a map
+Use the `sf` package and a shapefile to visualise data on a map. This shapefile comes from the UK government's [Geoportal](https://geoportal.statistics.gov.uk/search?q=BDY_RGN%3BDEC_2023&sort=Title%7Ctitle%7Casc). This [tool](https://borders.ukdataservice.ac.uk/bds.html) is also a good resource for finding different shapefiles. 
 ```{r}
-#| eval: false
 
 library(sf)
 library(tidyverse)
 
-# firstly read in a shapefile, e.g. from the ONS:
-# https://geoportal.statistics.gov.uk/search?q=BDY_RGN%3BDEC_2023&sort=Title%7Ctitle%7Casc
+# firstly read in a shapefile. Note that when you download a shapefile, it comes with other 
+# files like .shx. These all need to be in the same directory as the .shp file itself.
+# As such, you can actually just specify the folder name that contains the shapefile and its
+# accompanying files. 
 
-# note that when you download a shapefile, it comes with other files like .shx. These all need to be
-# in the same directory as the .shp file itself.
-
-eng_reg_map = st_read("./Shapefiles/RGN_DEC_2023_EN_BFC.shp")
+eng_reg_map = st_read("./Shapefiles/Eng_regional_2023/RGN_DEC_2023_EN_BFC.shp")
 
 # check that the map is appropriate for your needs by graphing it without any data attached
 eng_reg_map %>%
