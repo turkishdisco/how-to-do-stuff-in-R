@@ -452,6 +452,35 @@ palmerpenguins::penguins %>%
   theme_void()
 ```
 
+## Sankey
+```{r}
+library(networkD3)
+
+links = data.frame(
+  Var1 = c("Failed_Phonics", "Passed_Phonics", "Failed_Phonics", "Passed_Phonics"),
+  Var2 = c("Failed_KS2", "Failed_KS2", "Passed_KS2", "Passed_KS2"),
+  Freq = c(25114, 120356, 9019, 585893)
+)
+
+colnames(links) <- c("source", "target", "value")
+
+nodes <- data.frame(name = as.factor(c("Failed_Phonics","Passed_Phonics","Failed_KS2","Passed_KS2")))
+
+# Convert the source and target from characters to indices
+links$source <- match(links$source, nodes$name) - 1
+links$target <- match(links$target, nodes$name) - 1
+
+# create Sankey diagram
+sankeyNetwork(Links = links, 
+              Nodes = nodes, 
+              Source = "source",
+              Target = "target", 
+              Value = "value", 
+              NodeID = "name", 
+              fontSize = 12, 
+              fontFamily = "sans-serif")
+```
+
 
 # Plotting statistical summary data
 It's possible to plot different statistical summaries within ggplot2, for instance the median.
