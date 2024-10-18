@@ -997,6 +997,20 @@ my_func = function(datafile){
   # for example, you might then use df_name later:
   df %>% select(!!paste("KS2", df_name, "_CGS", sep=""))
 }
+
+# Example: extract a variable name to use as a ggtitle:
+
+char_graph = function(df, outcome, char){
+  
+  # extract text contained in 'char'
+  title = deparse(substitute(char))
+  
+  # create graph and invoke title object in ggtitle
+  df %>%
+    ggplot(aes(x = {{outcome}}, y = prop, fill = {{char}})) +
+    ggtitle(title)
+    ...
+}}
 ```
 
 
