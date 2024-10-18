@@ -564,10 +564,16 @@ ggplot(data.frame(x = c("axis.text.x"), y= c("axis.text.y")), aes(x=x, y=y)) +
 ```
 
 
-## Plot title
+## Plot title, subtitle, and caption
 ```{r}
 #| eval: false
 p + ggtitle("Main plot title", subtitle = "Plot subtitle")
+
+# use labs to add a caption
+p + labs(caption = "my caption")
+
+# caption is right-justified by default. To change:
+p + theme(plot.caption = element_text(hjust=0))
 
 # centre align plot title
 p + theme(plot.title = element_text(hjust = 0.5))
