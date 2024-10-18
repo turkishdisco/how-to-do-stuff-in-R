@@ -680,10 +680,10 @@ There are two types of joins:
 - Inner joins: retaining only rows that appear in BOTH tables (`inner_join`)
 - Outer joins: retaining only rows from ONE of the two tables (`left_join`, `right_join`, `full_join`)
 
-A left join will retain all rows in the first table (`df` below). 
+A left join will retain all rows in the first table (`df` below). Note that when your join contains duplicate column names, these will become "var1.x" and "var1.y" by default. To override this and avoid having to rename separately later, you can specify the suffixes you would like using the `suffix` argument.
 ```{r}
 # when the primary key is the same
-df1 %>% left_join(df2, by = "primaryKey")
+df1 %>% left_join(df2, by = "primaryKey", suffix = c("_t1", "_t2"))
 
 # when primary keys are different
 df1 %>% left_join(df2, by = c("primaryKey1" = "Primarykey2"))
@@ -1058,7 +1058,24 @@ grouped_mean_multiple = function(.data, .sum_var, ...){
 grouped_mean_multiple(mtcars, hp, am, gear)
 ```
 
-Don't forget `get()` and `{{}}`. 
+Don't forget `get()` and `{{}}`. Here is an example where you might want to produce many tables with different variables:
+```{r}
+#| eval: false
+
+char_table = function(df, outcome, char){
+  df %>% 
+    filter(!is.na({{char}})) %>%
+    tabyl({{outcome}}, {{char}}) %>% 
+    adorn_totals(c("row", "col")) %>%
+    adorn_percentages("row") %>%
+    adorn_pct_formatting()  %>%
+    adorn_ns(position = "rear") %>%
+    adorn_title()
+}
+
+char_table(my_dataframe, pass_rate, ethnicity)
+```
+
 
 Here, use `if_any` and `coalesce` to take the first non-missing value within a pre-specified list, and then derive a new variable based on a dynamic name (`{{varname}}`)
 ```{r}
