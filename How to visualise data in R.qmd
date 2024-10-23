@@ -1085,7 +1085,6 @@ ggplot2::midwest %>%
 # Mapping
 Use the `sf` package and a shapefile to visualise data on a map. This shapefile comes from the UK government's [Geoportal](https://geoportal.statistics.gov.uk/search?q=BDY_RGN%3BDEC_2023&sort=Title%7Ctitle%7Casc). This [tool](https://borders.ukdataservice.ac.uk/bds.html) is also a good resource for finding different shapefiles. 
 ```{r}
-
 library(sf)
 library(tidyverse)
 
@@ -1122,6 +1121,35 @@ eng_reg_map %>%
   scale_fill_gradient(name = "Respondents",
                       low = "grey90", high = "grey15", 
                       na.value = "white")
+```
+
+To add points based on geometry:
+```{r}
+# say you have a data frame with easting and northing values (these could be lat/long too)
+map_df = data.frame(
+school = c(1:15),
+easting = c(427144, 390498, 391459, 453596, 332195, 439952, 397143, 331548, 504305, 527647, 349039, 437349, 504740, 448965, 166988),
+northing = c(433927, 323814, 162039,  86591, 391270, 114064, 157408, 390872, 208312, 169328, 405788, 377158, 103181, 361343,  44078),
+pupils  = c(28, 23, 59, 22, 28, 76, 13, 14, 57, 43, 25, 12, 59, 52, 31)
+)
+
+# crucial step - check which CRS the original map uses
+st_crs(eng_reg_map)$epsg
+
+# make sure you use the same CRS for the dataframe when you convert it to sf:
+schools.sf = st_as_sf(map_df, coords = c("easting", "northing"), remove = FALSE, crs = 27700)
+
+# check that the points themselves work
+# plot(schools.sf$geometry)
+
+# add to the map
+eng_reg_map %>%
+  ggplot() +
+  geom_sf(fill   = NA,
+          colour = "grey50") +
+  geom_sf(data = schools.sf, aes(color = pupils), size = 2) +
+  theme_void() +
+  scale_colour_gradient(low = "grey", high = "red")
 ```
 
 
