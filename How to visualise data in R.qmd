@@ -673,6 +673,22 @@ A tip: if you want a y-axis to begin at zero but don't know the maximum, you can
 p + expand_limits(y = 0)
 ```
 
+When you have a discrete x-axis, sometimes you get a lot of space between aesthetics and the edges of the plot. To control the spacing, add `scale_*_discrete(expand = c(0.1, 0.1))`:
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+
+mpg %>%
+    mutate(year = as.factor(year)) %>%
+    group_by(year) %>%
+    summarise(cty_m = mean(cty, na.rm = T)) %>%
+    pivot_longer(c(cty_m)) %>%
+    ggplot(aes(x = year, y = value)) +
+    stat_summary(fun = "mean", geom = "line", aes(group = 1)) +
+    scale_x_discrete(expand = c(0.1, 0.1))
+```
+
+
 Clipping determines whether to display elements that would lie outside the plot panel. Expanding sets a buffer margin around a plot to prevent overlapping.
 ```{r}
 #| fig-height: 3
