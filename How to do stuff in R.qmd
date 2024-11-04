@@ -395,6 +395,7 @@ c_list %>% tidyr::separate_longer_delim(a, delim=",")
 # separate items into new cols
 c_list %>% tidyr::separate_wider_delim(a, delim=",", names = c("col1", "col2", "col3"))
 ```
+
 Another example - say you want to split this `measure` column into two columns, by the underscore delimiter and then pivot wider to see the values side by side for every measure.
 ```{r}
 #| eval: true
@@ -444,7 +445,7 @@ df %>% mutate(flag = coalesce(TestMark1A, TestMark2A, TestMark3A))
 ```
 
 
-## Filtering
+## Filter
 Note that filtering is faster on ungrouped data.
 ```{r}
 mtcars %>% filter(gear >= 4 & hp > 109)
@@ -452,7 +453,7 @@ mtcars %>% filter(gear >= 4 & hp > 109)
 
 
 
-### Slicing
+### Slice
 Use `slice` functions to subset rows.
 
 Recipe: look for duplicate entries according to certain variables and use `slice_tail` to select the last observation in each grouping. This works by assigning a row number to each row according to its arrangement/grouping, then simply retaining the last row in the group.
@@ -476,7 +477,7 @@ mtcars %>%
 
 Alternatively, use `slice(1)` in the above to select the **first** row. 
 
-### Duplicating/replicating rows
+### Duplicate/replicate rows
 Say you have the following df where you would like to duplicate each row according to the value in the `cnt` column:
 ```{r}
 #| eval: true
@@ -575,7 +576,7 @@ df %>% mutate(mode_k = pmap_int(select(., contains("InputMethods")),
 
 
 ## Changing variables
-### Renaming columns
+### Rename columns
 ```{r}
 iris %>% rename(sepal_length = "Sepal.Length")
 ```
@@ -593,13 +594,23 @@ df %>%
 ```
 
 
-### Relocating
+### Relocate
 ```{r}
 iris %>% relocate(Species, .before = Sepal.Length)
 iris %>% relocate(Petal.Width, .after = last_col())
 
 # if you don't specify .before or .after, the column will be moved to the front by default
 iris %>% relocate(Species)
+
+# alternatively, you can just list column names to derive a new order
+iris %>% relocate(Species, Petal.Width, Sepal.Length)
+# any remaining column names that you don't specify will remain in the data in their original
+# positions relative to each other
+
+# you can also rename while you relocate
+iris %>% relocate(plant = Species, 
+                  petal_w = Petal.Width, 
+                  sepal_w = Sepal.Width)
 ```
 
 
@@ -894,6 +905,7 @@ my_date = as.Date("08/10/2021", "%d/%m/%Y")
 year = format(as.Date(my_date, format="%d/%m/%Y"),"%Y")
 year
 ```
+
 The method above results in character type, e.g. "2021". It may be better to use `lubridate` to extract the year as this is simpler and results in a double type which is more compatible with graphing methods:
 ```{r}
 #| eval: true

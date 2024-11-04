@@ -3116,10 +3116,10 @@ vertical-align: -.125em;
   <li><a href="#separate-and-unnest" id="toc-separate-and-unnest" class="nav-link" data-scroll-target="#separate-and-unnest"><span class="header-section-number">3.4</span> Separate and unnest</a></li>
   <li><a href="#unite" id="toc-unite" class="nav-link" data-scroll-target="#unite"><span class="header-section-number">3.5</span> Unite</a></li>
   <li><a href="#coalesce" id="toc-coalesce" class="nav-link" data-scroll-target="#coalesce"><span class="header-section-number">3.6</span> Coalesce</a></li>
-  <li><a href="#filtering" id="toc-filtering" class="nav-link" data-scroll-target="#filtering"><span class="header-section-number">3.7</span> Filtering</a>
+  <li><a href="#filter" id="toc-filter" class="nav-link" data-scroll-target="#filter"><span class="header-section-number">3.7</span> Filter</a>
   <ul class="collapse">
-  <li><a href="#slicing" id="toc-slicing" class="nav-link" data-scroll-target="#slicing"><span class="header-section-number">3.7.1</span> Slicing</a></li>
-  <li><a href="#duplicatingreplicating-rows" id="toc-duplicatingreplicating-rows" class="nav-link" data-scroll-target="#duplicatingreplicating-rows"><span class="header-section-number">3.7.2</span> Duplicating/replicating rows</a></li>
+  <li><a href="#slice" id="toc-slice" class="nav-link" data-scroll-target="#slice"><span class="header-section-number">3.7.1</span> Slice</a></li>
+  <li><a href="#duplicatereplicate-rows" id="toc-duplicatereplicate-rows" class="nav-link" data-scroll-target="#duplicatereplicate-rows"><span class="header-section-number">3.7.2</span> Duplicate/replicate rows</a></li>
   </ul></li>
   <li><a href="#deriving-new-variables" id="toc-deriving-new-variables" class="nav-link" data-scroll-target="#deriving-new-variables"><span class="header-section-number">3.8</span> Deriving new variables</a>
   <ul class="collapse">
@@ -3129,8 +3129,8 @@ vertical-align: -.125em;
   </ul></li>
   <li><a href="#changing-variables" id="toc-changing-variables" class="nav-link" data-scroll-target="#changing-variables"><span class="header-section-number">3.9</span> Changing variables</a>
   <ul class="collapse">
-  <li><a href="#renaming-columns" id="toc-renaming-columns" class="nav-link" data-scroll-target="#renaming-columns"><span class="header-section-number">3.9.1</span> Renaming columns</a></li>
-  <li><a href="#relocating" id="toc-relocating" class="nav-link" data-scroll-target="#relocating"><span class="header-section-number">3.9.2</span> Relocating</a></li>
+  <li><a href="#rename-columns" id="toc-rename-columns" class="nav-link" data-scroll-target="#rename-columns"><span class="header-section-number">3.9.1</span> Rename columns</a></li>
+  <li><a href="#relocate" id="toc-relocate" class="nav-link" data-scroll-target="#relocate"><span class="header-section-number">3.9.2</span> Relocate</a></li>
   <li><a href="#recoding" id="toc-recoding" class="nav-link" data-scroll-target="#recoding"><span class="header-section-number">3.9.3</span> Recoding</a></li>
   <li><a href="#refactoring-relevelling" id="toc-refactoring-relevelling" class="nav-link" data-scroll-target="#refactoring-relevelling"><span class="header-section-number">3.9.4</span> Refactoring / relevelling</a></li>
   </ul></li>
@@ -3210,7 +3210,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">Last updated: 18/10/2024 13:29</p>
+      <p class="date">Last updated: 04/11/2024 09:57</p>
     </div>
   </div>
   
@@ -4583,14 +4583,14 @@ vertical-align: -.125em;
 <div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>df <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">flag =</span> <span class="fu">coalesce</span>(TestMark1A, TestMark2A, TestMark3A))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="filtering" class="level2" data-number="3.7">
-<h2 data-number="3.7" class="anchored" data-anchor-id="filtering"><span class="header-section-number">3.7</span> Filtering</h2>
+<section id="filter" class="level2" data-number="3.7">
+<h2 data-number="3.7" class="anchored" data-anchor-id="filter"><span class="header-section-number">3.7</span> Filter</h2>
 <p>Note that filtering is faster on ungrouped data.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>mtcars <span class="sc">%&gt;%</span> <span class="fu">filter</span>(gear <span class="sc">&gt;=</span> <span class="dv">4</span> <span class="sc">&amp;</span> hp <span class="sc">&gt;</span> <span class="dv">109</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<section id="slicing" class="level3" data-number="3.7.1">
-<h3 data-number="3.7.1" class="anchored" data-anchor-id="slicing"><span class="header-section-number">3.7.1</span> Slicing</h3>
+<section id="slice" class="level3" data-number="3.7.1">
+<h3 data-number="3.7.1" class="anchored" data-anchor-id="slice"><span class="header-section-number">3.7.1</span> Slice</h3>
 <p>Use <code>slice</code> functions to subset rows.</p>
 <p>Recipe: look for duplicate entries according to certain variables and use <code>slice_tail</code> to select the last observation in each grouping. This works by assigning a row number to each row according to its arrangement/grouping, then simply retaining the last row in the group.</p>
 <div class="cell">
@@ -4669,8 +4669,8 @@ vertical-align: -.125em;
 </div>
 <p>Alternatively, use <code>slice(1)</code> in the above to select the <strong>first</strong> row.</p>
 </section>
-<section id="duplicatingreplicating-rows" class="level3" data-number="3.7.2">
-<h3 data-number="3.7.2" class="anchored" data-anchor-id="duplicatingreplicating-rows"><span class="header-section-number">3.7.2</span> Duplicating/replicating rows</h3>
+<section id="duplicatereplicate-rows" class="level3" data-number="3.7.2">
+<h3 data-number="3.7.2" class="anchored" data-anchor-id="duplicatereplicate-rows"><span class="header-section-number">3.7.2</span> Duplicate/replicate rows</h3>
 <p>Say you have the following df where you would like to duplicate each row according to the value in the <code>cnt</code> column:</p>
 <div class="cell">
 <div class="cell-output-display">
@@ -4846,8 +4846,8 @@ vertical-align: -.125em;
 </section>
 <section id="changing-variables" class="level2" data-number="3.9">
 <h2 data-number="3.9" class="anchored" data-anchor-id="changing-variables"><span class="header-section-number">3.9</span> Changing variables</h2>
-<section id="renaming-columns" class="level3" data-number="3.9.1">
-<h3 data-number="3.9.1" class="anchored" data-anchor-id="renaming-columns"><span class="header-section-number">3.9.1</span> Renaming columns</h3>
+<section id="rename-columns" class="level3" data-number="3.9.1">
+<h3 data-number="3.9.1" class="anchored" data-anchor-id="rename-columns"><span class="header-section-number">3.9.1</span> Rename columns</h3>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">%&gt;%</span> <span class="fu">rename</span>(<span class="at">sepal_length =</span> <span class="st">&quot;Sepal.Length&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -4863,14 +4863,24 @@ vertical-align: -.125em;
 <span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>              <span class="at">replacement =</span> <span class="st">&quot;_agg&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="relocating" class="level3" data-number="3.9.2">
-<h3 data-number="3.9.2" class="anchored" data-anchor-id="relocating"><span class="header-section-number">3.9.2</span> Relocating</h3>
+<section id="relocate" class="level3" data-number="3.9.2">
+<h3 data-number="3.9.2" class="anchored" data-anchor-id="relocate"><span class="header-section-number">3.9.2</span> Relocate</h3>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">%&gt;%</span> <span class="fu">relocate</span>(Species, <span class="at">.before =</span> Sepal.Length)</span>
 <span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">%&gt;%</span> <span class="fu">relocate</span>(Petal.Width, <span class="at">.after =</span> <span class="fu">last_col</span>())</span>
 <span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a><span class="co"># if you don&#39;t specify .before or .after, the column will be moved to the front by default</span></span>
-<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">%&gt;%</span> <span class="fu">relocate</span>(Species)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">%&gt;%</span> <span class="fu">relocate</span>(Species)</span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a><span class="co"># alternatively, you can just list column names to derive a new order</span></span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">%&gt;%</span> <span class="fu">relocate</span>(Species, Petal.Width, Sepal.Length)</span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a><span class="co"># any remaining column names that you don&#39;t specify will remain in the data in their original</span></span>
+<span id="cb51-10"><a href="#cb51-10" aria-hidden="true" tabindex="-1"></a><span class="co"># positions relative to each other</span></span>
+<span id="cb51-11"><a href="#cb51-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-12"><a href="#cb51-12" aria-hidden="true" tabindex="-1"></a><span class="co"># you can also rename while you relocate</span></span>
+<span id="cb51-13"><a href="#cb51-13" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">%&gt;%</span> <span class="fu">relocate</span>(<span class="at">plant =</span> Species, </span>
+<span id="cb51-14"><a href="#cb51-14" aria-hidden="true" tabindex="-1"></a>                  <span class="at">petal_w =</span> Petal.Width, </span>
+<span id="cb51-15"><a href="#cb51-15" aria-hidden="true" tabindex="-1"></a>                  <span class="at">sepal_w =</span> Sepal.Width)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="recoding" class="level3" data-number="3.9.3">
@@ -5805,20 +5815,20 @@ vertical-align: -.125em;
 <span id="cb106-22"><a href="#cb106-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">opt_stylize</span>(<span class="at">style =</span> <span class="dv">3</span>) <span class="sc">%&gt;%</span>  <span class="co"># styles 1-6</span></span>
 <span id="cb106-23"><a href="#cb106-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_footnote</span>(<span class="st">&quot;Source: World Bank&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<div id="exmmyspslx" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#exmmyspslx table {
+<div id="ojlermlqnl" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#ojlermlqnl table {
 font-family: Arial;
 -webkit-font-smoothing: antialiased;
 -moz-osx-font-smoothing: grayscale;
 }
-#exmmyspslx thead, #exmmyspslx tbody, #exmmyspslx tfoot, #exmmyspslx tr, #exmmyspslx td, #exmmyspslx th {
+#ojlermlqnl thead, #ojlermlqnl tbody, #ojlermlqnl tfoot, #ojlermlqnl tr, #ojlermlqnl td, #ojlermlqnl th {
 border-style: none;
 }
-#exmmyspslx p {
+#ojlermlqnl p {
 margin: 0;
 padding: 0;
 }
-#exmmyspslx .gt_table {
+#ojlermlqnl .gt_table {
 display: table;
 border-collapse: collapse;
 line-height: normal;
@@ -5843,11 +5853,11 @@ border-left-style: none;
 border-left-width: 2px;
 border-left-color: #D3D3D3;
 }
-#exmmyspslx .gt_caption {
+#ojlermlqnl .gt_caption {
 padding-top: 4px;
 padding-bottom: 4px;
 }
-#exmmyspslx .gt_title {
+#ojlermlqnl .gt_title {
 color: #333333;
 font-size: 125%;
 font-weight: initial;
@@ -5858,7 +5868,7 @@ padding-right: 5px;
 border-bottom-color: #FFFFFF;
 border-bottom-width: 0;
 }
-#exmmyspslx .gt_subtitle {
+#ojlermlqnl .gt_subtitle {
 color: #333333;
 font-size: 85%;
 font-weight: initial;
@@ -5869,7 +5879,7 @@ padding-right: 5px;
 border-top-color: #FFFFFF;
 border-top-width: 0;
 }
-#exmmyspslx .gt_heading {
+#ojlermlqnl .gt_heading {
 background-color: #FFFFFF;
 text-align: center;
 border-bottom-color: #FFFFFF;
@@ -5880,12 +5890,12 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#exmmyspslx .gt_bottom_border {
+#ojlermlqnl .gt_bottom_border {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #929292;
 }
-#exmmyspslx .gt_col_headings {
+#ojlermlqnl .gt_col_headings {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #929292;
@@ -5899,7 +5909,7 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#exmmyspslx .gt_col_heading {
+#ojlermlqnl .gt_col_heading {
 color: #FFFFFF;
 background-color: #004D80;
 font-size: 100%;
@@ -5918,7 +5928,7 @@ padding-left: 5px;
 padding-right: 5px;
 overflow-x: hidden;
 }
-#exmmyspslx .gt_column_spanner_outer {
+#ojlermlqnl .gt_column_spanner_outer {
 color: #FFFFFF;
 background-color: #004D80;
 font-size: 100%;
@@ -5929,13 +5939,13 @@ padding-bottom: 0;
 padding-left: 4px;
 padding-right: 4px;
 }
-#exmmyspslx .gt_column_spanner_outer:first-child {
+#ojlermlqnl .gt_column_spanner_outer:first-child {
 padding-left: 0;
 }
-#exmmyspslx .gt_column_spanner_outer:last-child {
+#ojlermlqnl .gt_column_spanner_outer:last-child {
 padding-right: 0;
 }
-#exmmyspslx .gt_column_spanner {
+#ojlermlqnl .gt_column_spanner {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #929292;
@@ -5946,10 +5956,10 @@ overflow-x: hidden;
 display: inline-block;
 width: 100%;
 }
-#exmmyspslx .gt_spanner_row {
+#ojlermlqnl .gt_spanner_row {
 border-bottom-style: hidden;
 }
-#exmmyspslx .gt_group_heading {
+#ojlermlqnl .gt_group_heading {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -5974,7 +5984,7 @@ border-right-color: #D3D3D3;
 vertical-align: middle;
 text-align: left;
 }
-#exmmyspslx .gt_empty_group_heading {
+#ojlermlqnl .gt_empty_group_heading {
 padding: 0.5px;
 color: #333333;
 background-color: #FFFFFF;
@@ -5988,13 +5998,13 @@ border-bottom-width: 2px;
 border-bottom-color: #929292;
 vertical-align: middle;
 }
-#exmmyspslx .gt_from_md > :first-child {
+#ojlermlqnl .gt_from_md > :first-child {
 margin-top: 0;
 }
-#exmmyspslx .gt_from_md > :last-child {
+#ojlermlqnl .gt_from_md > :last-child {
 margin-bottom: 0;
 }
-#exmmyspslx .gt_row {
+#ojlermlqnl .gt_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -6012,7 +6022,7 @@ border-right-color: #929292;
 vertical-align: middle;
 overflow-x: hidden;
 }
-#exmmyspslx .gt_stub {
+#ojlermlqnl .gt_stub {
 color: #333333;
 background-color: #D5D5D5;
 font-size: 100%;
@@ -6024,7 +6034,7 @@ border-right-color: #FFFFFF;
 padding-left: 5px;
 padding-right: 5px;
 }
-#exmmyspslx .gt_stub_row_group {
+#ojlermlqnl .gt_stub_row_group {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -6037,13 +6047,13 @@ padding-left: 5px;
 padding-right: 5px;
 vertical-align: top;
 }
-#exmmyspslx .gt_row_group_first td {
+#ojlermlqnl .gt_row_group_first td {
 border-top-width: 2px;
 }
-#exmmyspslx .gt_row_group_first th {
+#ojlermlqnl .gt_row_group_first th {
 border-top-width: 2px;
 }
-#exmmyspslx .gt_summary_row {
+#ojlermlqnl .gt_summary_row {
 color: #333333;
 background-color: #FFFFFF;
 text-transform: inherit;
@@ -6052,14 +6062,14 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#exmmyspslx .gt_first_summary_row {
+#ojlermlqnl .gt_first_summary_row {
 border-top-style: solid;
 border-top-color: #929292;
 }
-#exmmyspslx .gt_first_summary_row.thick {
+#ojlermlqnl .gt_first_summary_row.thick {
 border-top-width: 2px;
 }
-#exmmyspslx .gt_last_summary_row {
+#ojlermlqnl .gt_last_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -6068,7 +6078,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #929292;
 }
-#exmmyspslx .gt_grand_summary_row {
+#ojlermlqnl .gt_grand_summary_row {
 color: #333333;
 background-color: #D5D5D5;
 text-transform: inherit;
@@ -6077,7 +6087,7 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#exmmyspslx .gt_first_grand_summary_row {
+#ojlermlqnl .gt_first_grand_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -6086,7 +6096,7 @@ border-top-style: double;
 border-top-width: 6px;
 border-top-color: #929292;
 }
-#exmmyspslx .gt_last_grand_summary_row_top {
+#ojlermlqnl .gt_last_grand_summary_row_top {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -6095,10 +6105,10 @@ border-bottom-style: double;
 border-bottom-width: 6px;
 border-bottom-color: #929292;
 }
-#exmmyspslx .gt_striped {
+#ojlermlqnl .gt_striped {
 background-color: #F4F4F4;
 }
-#exmmyspslx .gt_table_body {
+#ojlermlqnl .gt_table_body {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #929292;
@@ -6106,7 +6116,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #929292;
 }
-#exmmyspslx .gt_footnotes {
+#ojlermlqnl .gt_footnotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -6119,7 +6129,7 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#exmmyspslx .gt_footnote {
+#ojlermlqnl .gt_footnote {
 margin: 0px;
 font-size: 90%;
 padding-top: 4px;
@@ -6127,7 +6137,7 @@ padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#exmmyspslx .gt_sourcenotes {
+#ojlermlqnl .gt_sourcenotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -6140,57 +6150,57 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#exmmyspslx .gt_sourcenote {
+#ojlermlqnl .gt_sourcenote {
 font-size: 90%;
 padding-top: 4px;
 padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#exmmyspslx .gt_left {
+#ojlermlqnl .gt_left {
 text-align: left;
 }
-#exmmyspslx .gt_center {
+#ojlermlqnl .gt_center {
 text-align: center;
 }
-#exmmyspslx .gt_right {
+#ojlermlqnl .gt_right {
 text-align: right;
 font-variant-numeric: tabular-nums;
 }
-#exmmyspslx .gt_font_normal {
+#ojlermlqnl .gt_font_normal {
 font-weight: normal;
 }
-#exmmyspslx .gt_font_bold {
+#ojlermlqnl .gt_font_bold {
 font-weight: bold;
 }
-#exmmyspslx .gt_font_italic {
+#ojlermlqnl .gt_font_italic {
 font-style: italic;
 }
-#exmmyspslx .gt_super {
+#ojlermlqnl .gt_super {
 font-size: 65%;
 }
-#exmmyspslx .gt_footnote_marks {
+#ojlermlqnl .gt_footnote_marks {
 font-size: 75%;
 vertical-align: 0.4em;
 position: initial;
 }
-#exmmyspslx .gt_asterisk {
+#ojlermlqnl .gt_asterisk {
 font-size: 100%;
 vertical-align: 0;
 }
-#exmmyspslx .gt_indent_1 {
+#ojlermlqnl .gt_indent_1 {
 text-indent: 5px;
 }
-#exmmyspslx .gt_indent_2 {
+#ojlermlqnl .gt_indent_2 {
 text-indent: 10px;
 }
-#exmmyspslx .gt_indent_3 {
+#ojlermlqnl .gt_indent_3 {
 text-indent: 15px;
 }
-#exmmyspslx .gt_indent_4 {
+#ojlermlqnl .gt_indent_4 {
 text-indent: 20px;
 }
-#exmmyspslx .gt_indent_5 {
+#ojlermlqnl .gt_indent_5 {
 text-indent: 25px;
 }
 </style>
