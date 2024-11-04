@@ -735,6 +735,21 @@ df1 %>% left_join(df2, by = "primaryKey",
 - "many-to-one"
 - "many-to-many" (doesn't provide any checks but prevents warnings)
 
+A recipe for renaming columns in a big join: say you're joining two dataframes from different time points that have the same name columns. You want to keep both sets, but append something to the first set of names to keep it unique for later joins. 
+```{r}
+# first create a vector of column names to rename
+cols_to_rename = c("URN", "CensusTerm", "NCYearActual",  "EthnicGroupMajor", "FSMeligible")
+
+# append _y1 to distinguish from _y2 data joined later using rename_with
+# (can also provide a suffix argument just in case names are duplicated)
+df_joined = df1 %>%
+  left_join(df2, by = "PupilMatchingRefAnonymous",
+            suffix = c("_cenY1", "_phonY1")) %>%
+  rename_with(~paste0(., "_y1"), .cols = all_of(cols_to_rename))
+```
+
+Here, `rename_with` says: for all column names in `cols_to_rename`, paste the original name plus `_y1` at the end.
+
 ## Splitting a list of dataframes
 ```{r}
 # split a dataframe according to a variable
