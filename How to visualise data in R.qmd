@@ -859,6 +859,16 @@ ggplot2::diamonds %>%
 
 # Using colours
 ## Manual
+Quick manual palettes for sequential and categorical variables (adjust to number needed).
+```{r}
+seq2 = c("#12436D", "#6BACE6")
+seq3 = c("#12436D", "#2073BC", "#6BACE6")
+
+cat4 = c("#12436D", "#28A197", "#801650", "#F46A25", "#3D3D3D", "#A285D1")
+```
+
+
+
 ```{r}
 # Sequential palettes
 blues = c("#104F75", "#407291", "#7095AC", "#9FB9C8", "#CFDCE3")
