@@ -312,7 +312,8 @@ prop_df
 prop_df %>%
   ggplot(aes(x = group, y = count, fill = type)) +
   geom_bar(position = "fill", stat="identity", width = 0.8) +
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1), 
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1,
+                                                    scale = 100), 
                      breaks = c(0, 0.25, 0.5, 0.75, 1)) +
   ylab("Proportion")
 ```
@@ -325,7 +326,8 @@ palmerpenguins::penguins %>%
   ggplot(aes(x = island, fill = sex)) +
   geom_bar(position = position_fill(),
            width = 0.8) +
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1), 
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1,
+                                                    scale = 100), 
                      breaks = c(0, 0.25, 0.5, 0.75, 1)) +
   ylab("Proportion")
 ```
@@ -625,7 +627,8 @@ p + theme(axis.ticks.x = element_blank())
 ```{r}
 #| eval: false
 # percent labels with breaks of 10-100%
-p + scale_y_continuous(labels = scales::label_percent(accuracy = 1), breaks = (0:10)/10)
+# note: change scale to 0 if you are working with integers already, otherwise leave at default of 100
+p + scale_y_continuous(labels = scales::label_percent(accuracy = 1, scale = 100), breaks = (0:10)/10)
 
 # currency suffix
 p + scale_y_continuous(labels = scales::label_dollar(prefix = "£"))
