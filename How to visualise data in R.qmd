@@ -400,14 +400,18 @@ palmerpenguins::penguins %>%
   geom_histogram(binwidth = 100, 
                  fill = "grey", 
                  colour = "black")
-
-# multiple groups
-palmerpenguins::penguins %>%
-  ggplot(aes(x=body_mass_g)) +
-  geom_histogram(aes(fill=species), 
-                 binwidth = 50,
-                 alpha = 0.7)
 ```
+
+By default, `geom_histogram` will stack bars if there are multiple groups. You can change this by specifying `position` to `identity`:
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+ggplot2::diamonds %>%
+  ggplot(aes(x = carat, fill = cut)) +
+  geom_histogram(position = "identity", alpha = 0.4)
+```
+```
+
 
 Example of a function to iterate through multiple histograms, by group, using `purrr`:
 ```{r}
@@ -438,6 +442,16 @@ ggplot2::diamonds %>%
   geom_density(fill = "lightblue", 
                alpha=0.8)
 ```
+
+You may want to overlay distributions for levels of a factor.
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+ggplot2::diamonds %>%
+  ggplot(aes(x = carat, fill = cut)) +
+  geom_density(alpha=0.5)
+```
+
 
 
 ## Pie
@@ -1213,14 +1227,14 @@ mpg %>%
 
 # Combining and saving plots
 ## Facetting
-To facet by a single variable, use `facet_wrap`. Add `scales = "free"` if axes are different for each group. 
+To facet by a single variable, use `facet_wrap`. Add `scales = "free"` if axes are different for each group. NOTE: the old way was `~ species`, but `vars` allows you to specify several groupings, e.g. `vars(species, sex)`. 
 ```{r}
 #| fig-height: 5
 #| fig-width: 6
 palmerpenguins::penguins %>% 
   ggplot(aes(x = bill_length_mm, y = flipper_length_mm)) + 
   geom_point(aes(colour = island)) +
-  facet_wrap(~ species, 
+  facet_wrap(vars(species), 
              nrow = 3,
              scales = "fixed") +
   theme_bw()
@@ -1237,9 +1251,6 @@ palmerpenguins::penguins %>%
   facet_grid(species ~ sex) +
   theme_bw()
 ```
-
-
-
 
 
 ## Arranging
@@ -1320,5 +1331,56 @@ ppi = 300  # pixels per inch
 png("file_name.png", width = 4*ppi, height = 4*ppi, res = ppi)
 my_plot
 dev.off()
+```
+
+
+## Looping or iterating
+Sometimes you want to produce the same graph for a range of different levels in a factor. This recipe below produces histograms, grouped by 'EAL' for every variable listed in the `covariates` vector. It uses `purrr::map` to iterate through this list and then invokes `cowplot::plot_grid` to add these all to one file.
+```{r}
+#| eval: false
+hist_group_fun = function(x, y = NA) {
+  ggplot(data, aes(x = .data[[x]], fill = .data[[y]], colour = .data[[y]]) ) +
+    geom_histogram(alpha=0.5, position = "identity") +
+    theme(legend.text = element_text(size=9))
+}
+
+hist_group_fun(x = "IDACI.rank19", y = "EAL")
+
+# make a list of variables to loop through
+covariates = c("cpm.raw", "bpvs.raw", "IDACI.rank19")
+
+# iterate through covariates
+covariate_plots = map(covariates, ~ hist_group_fun(.x, "EAL") )
+
+# save to a single pdf file
+pdf("histograms_all.pdf")
+cowplot::plot_grid(plotlist = covariate_plots)
+dev.off()
+```
+
+This slightly different recipe takes an outcome variable and grouping factor to produce a histogram. It uses `enquo` to extract the number of levels in the specified grouping factor which it then supplies to the `nrow` argument of `facet_wrap`.
+```{r}
+#| eval: false
+dist_graph = function(data, x, char){
+  
+  # quote the 'char' variable
+  char_var = enquo(char)
+  
+  # find unique number of values in 'char' by unquoting
+  width = data %>% 
+    summarise(dist = n_distinct(!!char_var)) %>% as.numeric()
+  
+  data %>%
+    ggplot(aes(x = {{x}}, fill = {{char}})) +
+    geom_histogram(binwidth = 1, position  = "identity") +
+    facet_wrap(vars({{char}}), 
+               scales = "free",
+               nrow = width) +
+    theme(legend.position = "none",
+          axis.title.y = element_blank()) +
+    geom_vline(xintercept = 32, colour = "red")
+}
+
+dist_graph(c1_c2, x = PHONICSMARK_y1, char = MoB)
 ```
 
