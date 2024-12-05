@@ -38,7 +38,9 @@ p_load(
   ggpubr,
   directlabels,
   ggrepel,
-  gghighlight)
+  gghighlight,
+  afcharts,
+  gapminder)
 ```
 
 Note: this guide uses built-in datasets from the following, amongst others:
@@ -46,6 +48,7 @@ Note: this guide uses built-in datasets from the following, amongst others:
 - [`palmerpenguins`](https://allisonhorst.github.io/palmerpenguins/)
 - [`gcookbook`](https://cran.r-project.org/web/packages/gcookbook/gcookbook.pdf)
 - [`ggplot2`](https://ggplot2.tidyverse.org/reference/#data)
+- [``gapminder`]
 
 # Structure of a `ggplot`
 
@@ -71,7 +74,7 @@ If you want to add a global attribute (e.g. to apply to all points, lines, or wh
 mpg %>%
   ggplot(aes(x = displ, y = hwy)) +
   geom_point(size = 1.5,
-             position = "identity") 
+             position = "identity")
 ```
 
 This masks the picture because there are overlapping points. Changing `position` to `"jitter"`:
@@ -759,16 +762,69 @@ void = p + theme_void() + theme(axis.title = element_blank()) + ggtitle("theme_v
 ggarrange(grey, bw, line, minimal, classic, void)
 ```
 
+
+## Analysis function theme (`afcharts`)
+The AF has created its own package for producing accessible plots, based on ggplot2. The main function is `theme_af()`. It has the following arguments:
+```{r}
+#| eval: false
+theme_af(
+  base_size = 14,
+  base_line_size = base_size/24,
+  base_rect_size = base_size/24,
+  grid = c("y", "x", "xy", "none"),
+  axis = c("x", "y", "xy", "none"),
+  ticks = c("xy", "x", "y", "none"),
+  legend = c("right", "left", "top", "bottom", "none")
+)
+```
+
+
+
+```{r}
+afcharts::use_afcharts()
+  
+palmerpenguins::penguins %>%
+  ggplot(aes(x = island, fill = sex)) +
+  geom_bar(position = position_dodge(),
+           width = 0.8) +
+theme_af(legend = "bottom")
+  
+  
+gapminder %>%
+  filter(country %in% c("United Kingdom", "China", "Togo", "Bangladesh")) %>%
+  ggplot(aes(x = year, y = lifeExp, colour = country)) +
+  geom_line(linewidth = 1) +
+  theme_af(legend = "bottom") +
+  scale_colour_discrete_af() +
+  scale_y_continuous(limits = c(0, 82),
+                     breaks = seq(0, 80, 20),
+                     expand = c(0, 0)) +
+  scale_x_continuous(breaks = seq(1952, 2007, 5)) +
+   labs(
+    x = "Year",
+    y = NULL)
+```
+You will need to reset the default ggplot2 theme if you don't want to use `afcharts` any more.
+```{r}
+ggplot2::theme_set(theme_grey())
+```
+
+
 ## A custom theme I like
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
 
-p + theme(axis.line = element_line(colour="black"),
-        panel.grid.major.y = element_line(colour="grey90"),
-        panel.grid.major.x = element_blank(), 
-        panel.background = element_rect(fill = "white", 
-                                        colour = NA))
+# make this into a custom function that can be applied to any plot
+theme_chris = function(){
+  theme(
+    axis.line = element_line(colour = "grey80"),
+    panel.grid.major.y = element_line(colour = "grey90"),
+    panel.grid.major.x = element_blank(), 
+    panel.background = element_rect(fill = "white", colour = NA))
+}
+
+p + theme_chris()
 ```
 
 
@@ -784,7 +840,8 @@ gcookbook::countries %>%
     scale_colour_manual(values = c(RColorBrewer::brewer.pal(3, "Set2")),
                         breaks = c("United Kingdom", "United Arab Emirates", "United States"),
                         labels = c("UK", "UAE", "US"),
-                        name = "Country")
+                        name = "Country") +
+  theme_minimal()
 ```
 
 
