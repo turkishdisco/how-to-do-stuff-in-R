@@ -3191,6 +3191,7 @@ vertical-align: -.125em;
   <li><a href="#t-test" id="toc-t-test" class="nav-link" data-scroll-target="#t-test"><span class="header-section-number">11.3</span> T-test</a></li>
   <li><a href="#effect-size" id="toc-effect-size" class="nav-link" data-scroll-target="#effect-size"><span class="header-section-number">11.4</span> Effect size</a></li>
   <li><a href="#regression" id="toc-regression" class="nav-link" data-scroll-target="#regression"><span class="header-section-number">11.5</span> Regression</a></li>
+  <li><a href="#statistical-power" id="toc-statistical-power" class="nav-link" data-scroll-target="#statistical-power"><span class="header-section-number">11.6</span> Statistical power</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -3212,7 +3213,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">Last updated: 11/12/2024 14:49</p>
+      <p class="date">Last updated: 16/12/2024 14:33</p>
     </div>
   </div>
   
@@ -3904,7 +3905,12 @@ vertical-align: -.125em;
 <div class="cell">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>airquality <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">Ozone =</span> <span class="fu">replace_na</span>(Ozone, <span class="dv">0</span>))</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>airquality <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), <span class="sc">~</span> <span class="fu">replace_na</span>(., <span class="dv">0</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"># examples using across()</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>airquality <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">everything</span>(), <span class="sc">~</span> <span class="fu">replace_na</span>(., <span class="dv">0</span>)))</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">ends_with</span>(<span class="st">&quot;.Length&quot;</span>), <span class="sc">~</span> <span class="fu">replace_na</span>(., <span class="dv">0</span>)))</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>iris <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">starts_with</span>(<span class="fu">c</span>(<span class="st">&quot;Sepal&quot;</span>, <span class="st">&quot;Petal&quot;</span>)), <span class="sc">~</span> <span class="fu">replace_na</span>(., <span class="dv">0</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p><code>tidyr::fill</code> This is useful if you have a value that is only inserted once due to grouping, but you need to repeat this value for all the remaining rows.</p>
 <div class="cell">
@@ -5830,20 +5836,20 @@ vertical-align: -.125em;
 <span id="cb107-22"><a href="#cb107-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">opt_stylize</span>(<span class="at">style =</span> <span class="dv">3</span>) <span class="sc">%&gt;%</span>  <span class="co"># styles 1-6</span></span>
 <span id="cb107-23"><a href="#cb107-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_footnote</span>(<span class="st">&quot;Source: World Bank&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<div id="vzypajdlmo" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#vzypajdlmo table {
+<div id="hxckdzvdid" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#hxckdzvdid table {
 font-family: Arial;
 -webkit-font-smoothing: antialiased;
 -moz-osx-font-smoothing: grayscale;
 }
-#vzypajdlmo thead, #vzypajdlmo tbody, #vzypajdlmo tfoot, #vzypajdlmo tr, #vzypajdlmo td, #vzypajdlmo th {
+#hxckdzvdid thead, #hxckdzvdid tbody, #hxckdzvdid tfoot, #hxckdzvdid tr, #hxckdzvdid td, #hxckdzvdid th {
 border-style: none;
 }
-#vzypajdlmo p {
+#hxckdzvdid p {
 margin: 0;
 padding: 0;
 }
-#vzypajdlmo .gt_table {
+#hxckdzvdid .gt_table {
 display: table;
 border-collapse: collapse;
 line-height: normal;
@@ -5868,11 +5874,11 @@ border-left-style: none;
 border-left-width: 2px;
 border-left-color: #D3D3D3;
 }
-#vzypajdlmo .gt_caption {
+#hxckdzvdid .gt_caption {
 padding-top: 4px;
 padding-bottom: 4px;
 }
-#vzypajdlmo .gt_title {
+#hxckdzvdid .gt_title {
 color: #333333;
 font-size: 125%;
 font-weight: initial;
@@ -5883,7 +5889,7 @@ padding-right: 5px;
 border-bottom-color: #FFFFFF;
 border-bottom-width: 0;
 }
-#vzypajdlmo .gt_subtitle {
+#hxckdzvdid .gt_subtitle {
 color: #333333;
 font-size: 85%;
 font-weight: initial;
@@ -5894,7 +5900,7 @@ padding-right: 5px;
 border-top-color: #FFFFFF;
 border-top-width: 0;
 }
-#vzypajdlmo .gt_heading {
+#hxckdzvdid .gt_heading {
 background-color: #FFFFFF;
 text-align: center;
 border-bottom-color: #FFFFFF;
@@ -5905,12 +5911,12 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#vzypajdlmo .gt_bottom_border {
+#hxckdzvdid .gt_bottom_border {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #929292;
 }
-#vzypajdlmo .gt_col_headings {
+#hxckdzvdid .gt_col_headings {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #929292;
@@ -5924,7 +5930,7 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#vzypajdlmo .gt_col_heading {
+#hxckdzvdid .gt_col_heading {
 color: #FFFFFF;
 background-color: #004D80;
 font-size: 100%;
@@ -5943,7 +5949,7 @@ padding-left: 5px;
 padding-right: 5px;
 overflow-x: hidden;
 }
-#vzypajdlmo .gt_column_spanner_outer {
+#hxckdzvdid .gt_column_spanner_outer {
 color: #FFFFFF;
 background-color: #004D80;
 font-size: 100%;
@@ -5954,13 +5960,13 @@ padding-bottom: 0;
 padding-left: 4px;
 padding-right: 4px;
 }
-#vzypajdlmo .gt_column_spanner_outer:first-child {
+#hxckdzvdid .gt_column_spanner_outer:first-child {
 padding-left: 0;
 }
-#vzypajdlmo .gt_column_spanner_outer:last-child {
+#hxckdzvdid .gt_column_spanner_outer:last-child {
 padding-right: 0;
 }
-#vzypajdlmo .gt_column_spanner {
+#hxckdzvdid .gt_column_spanner {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #929292;
@@ -5971,10 +5977,10 @@ overflow-x: hidden;
 display: inline-block;
 width: 100%;
 }
-#vzypajdlmo .gt_spanner_row {
+#hxckdzvdid .gt_spanner_row {
 border-bottom-style: hidden;
 }
-#vzypajdlmo .gt_group_heading {
+#hxckdzvdid .gt_group_heading {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -5999,7 +6005,7 @@ border-right-color: #D3D3D3;
 vertical-align: middle;
 text-align: left;
 }
-#vzypajdlmo .gt_empty_group_heading {
+#hxckdzvdid .gt_empty_group_heading {
 padding: 0.5px;
 color: #333333;
 background-color: #FFFFFF;
@@ -6013,13 +6019,13 @@ border-bottom-width: 2px;
 border-bottom-color: #929292;
 vertical-align: middle;
 }
-#vzypajdlmo .gt_from_md > :first-child {
+#hxckdzvdid .gt_from_md > :first-child {
 margin-top: 0;
 }
-#vzypajdlmo .gt_from_md > :last-child {
+#hxckdzvdid .gt_from_md > :last-child {
 margin-bottom: 0;
 }
-#vzypajdlmo .gt_row {
+#hxckdzvdid .gt_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -6037,7 +6043,7 @@ border-right-color: #929292;
 vertical-align: middle;
 overflow-x: hidden;
 }
-#vzypajdlmo .gt_stub {
+#hxckdzvdid .gt_stub {
 color: #333333;
 background-color: #D5D5D5;
 font-size: 100%;
@@ -6049,7 +6055,7 @@ border-right-color: #FFFFFF;
 padding-left: 5px;
 padding-right: 5px;
 }
-#vzypajdlmo .gt_stub_row_group {
+#hxckdzvdid .gt_stub_row_group {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -6062,13 +6068,13 @@ padding-left: 5px;
 padding-right: 5px;
 vertical-align: top;
 }
-#vzypajdlmo .gt_row_group_first td {
+#hxckdzvdid .gt_row_group_first td {
 border-top-width: 2px;
 }
-#vzypajdlmo .gt_row_group_first th {
+#hxckdzvdid .gt_row_group_first th {
 border-top-width: 2px;
 }
-#vzypajdlmo .gt_summary_row {
+#hxckdzvdid .gt_summary_row {
 color: #333333;
 background-color: #FFFFFF;
 text-transform: inherit;
@@ -6077,14 +6083,14 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#vzypajdlmo .gt_first_summary_row {
+#hxckdzvdid .gt_first_summary_row {
 border-top-style: solid;
 border-top-color: #929292;
 }
-#vzypajdlmo .gt_first_summary_row.thick {
+#hxckdzvdid .gt_first_summary_row.thick {
 border-top-width: 2px;
 }
-#vzypajdlmo .gt_last_summary_row {
+#hxckdzvdid .gt_last_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -6093,7 +6099,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #929292;
 }
-#vzypajdlmo .gt_grand_summary_row {
+#hxckdzvdid .gt_grand_summary_row {
 color: #333333;
 background-color: #D5D5D5;
 text-transform: inherit;
@@ -6102,7 +6108,7 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#vzypajdlmo .gt_first_grand_summary_row {
+#hxckdzvdid .gt_first_grand_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -6111,7 +6117,7 @@ border-top-style: double;
 border-top-width: 6px;
 border-top-color: #929292;
 }
-#vzypajdlmo .gt_last_grand_summary_row_top {
+#hxckdzvdid .gt_last_grand_summary_row_top {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -6120,10 +6126,10 @@ border-bottom-style: double;
 border-bottom-width: 6px;
 border-bottom-color: #929292;
 }
-#vzypajdlmo .gt_striped {
+#hxckdzvdid .gt_striped {
 background-color: #F4F4F4;
 }
-#vzypajdlmo .gt_table_body {
+#hxckdzvdid .gt_table_body {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #929292;
@@ -6131,7 +6137,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #929292;
 }
-#vzypajdlmo .gt_footnotes {
+#hxckdzvdid .gt_footnotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -6144,7 +6150,7 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#vzypajdlmo .gt_footnote {
+#hxckdzvdid .gt_footnote {
 margin: 0px;
 font-size: 90%;
 padding-top: 4px;
@@ -6152,7 +6158,7 @@ padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#vzypajdlmo .gt_sourcenotes {
+#hxckdzvdid .gt_sourcenotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -6165,64 +6171,64 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#vzypajdlmo .gt_sourcenote {
+#hxckdzvdid .gt_sourcenote {
 font-size: 90%;
 padding-top: 4px;
 padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#vzypajdlmo .gt_left {
+#hxckdzvdid .gt_left {
 text-align: left;
 }
-#vzypajdlmo .gt_center {
+#hxckdzvdid .gt_center {
 text-align: center;
 }
-#vzypajdlmo .gt_right {
+#hxckdzvdid .gt_right {
 text-align: right;
 font-variant-numeric: tabular-nums;
 }
-#vzypajdlmo .gt_font_normal {
+#hxckdzvdid .gt_font_normal {
 font-weight: normal;
 }
-#vzypajdlmo .gt_font_bold {
+#hxckdzvdid .gt_font_bold {
 font-weight: bold;
 }
-#vzypajdlmo .gt_font_italic {
+#hxckdzvdid .gt_font_italic {
 font-style: italic;
 }
-#vzypajdlmo .gt_super {
+#hxckdzvdid .gt_super {
 font-size: 65%;
 }
-#vzypajdlmo .gt_footnote_marks {
+#hxckdzvdid .gt_footnote_marks {
 font-size: 75%;
 vertical-align: 0.4em;
 position: initial;
 }
-#vzypajdlmo .gt_asterisk {
+#hxckdzvdid .gt_asterisk {
 font-size: 100%;
 vertical-align: 0;
 }
-#vzypajdlmo .gt_indent_1 {
+#hxckdzvdid .gt_indent_1 {
 text-indent: 5px;
 }
-#vzypajdlmo .gt_indent_2 {
+#hxckdzvdid .gt_indent_2 {
 text-indent: 10px;
 }
-#vzypajdlmo .gt_indent_3 {
+#hxckdzvdid .gt_indent_3 {
 text-indent: 15px;
 }
-#vzypajdlmo .gt_indent_4 {
+#hxckdzvdid .gt_indent_4 {
 text-indent: 20px;
 }
-#vzypajdlmo .gt_indent_5 {
+#hxckdzvdid .gt_indent_5 {
 text-indent: 25px;
 }
-#vzypajdlmo .katex-display {
+#hxckdzvdid .katex-display {
 display: inline-flex !important;
 margin-bottom: 0.75em !important;
 }
-#vzypajdlmo div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#hxckdzvdid div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
 height: 0px !important;
 }
 </style>
@@ -9333,6 +9339,97 @@ F-statistic: 42.36 on 4 and 27 DF,  p-value: 0.00000000002928</code></pre>
 <span id="cb156-3"><a href="#cb156-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb156-4"><a href="#cb156-4" aria-hidden="true" tabindex="-1"></a><span class="co"># chi-square (deviance)</span></span>
 <span id="cb156-5"><a href="#cb156-5" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(m1, <span class="at">test =</span> <span class="st">&quot;Chisq&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="statistical-power" class="level2" data-number="11.6">
+<h2 data-number="11.6" class="anchored" data-anchor-id="statistical-power"><span class="header-section-number">11.6</span> Statistical power</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb157"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb157-1"><a href="#cb157-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Using pwr package. Note: you must leave one of the parameters blank to estimate it, e.g.</span></span>
+<span id="cb157-2"><a href="#cb157-2" aria-hidden="true" tabindex="-1"></a><span class="co"># if you want minimum power detectable at b=0.8, leave d as d = NULL</span></span>
+<span id="cb157-3"><a href="#cb157-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Permissible values for type = two.sample, one.sample, paired</span></span>
+<span id="cb157-4"><a href="#cb157-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Default value of alternative is &quot;two.sided&quot;</span></span>
+<span id="cb157-5"><a href="#cb157-5" aria-hidden="true" tabindex="-1"></a>pwr<span class="sc">::</span><span class="fu">pwr.t.test</span>(<span class="at">d =</span> <span class="fl">0.25</span>, </span>
+<span id="cb157-6"><a href="#cb157-6" aria-hidden="true" tabindex="-1"></a>                <span class="at">n =</span> <span class="dv">30</span>, </span>
+<span id="cb157-7"><a href="#cb157-7" aria-hidden="true" tabindex="-1"></a>                <span class="at">power =</span> <span class="fl">0.80</span>,</span>
+<span id="cb157-8"><a href="#cb157-8" aria-hidden="true" tabindex="-1"></a>                <span class="at">sig.level =</span> <span class="fl">0.05</span>, </span>
+<span id="cb157-9"><a href="#cb157-9" aria-hidden="true" tabindex="-1"></a>                <span class="at">type =</span> <span class="st">&quot;two.sample&quot;</span>,</span>
+<span id="cb157-10"><a href="#cb157-10" aria-hidden="true" tabindex="-1"></a>                <span class="at">alternative=</span><span class="st">&quot;two.sided&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb158"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb158-1"><a href="#cb158-1" aria-hidden="true" tabindex="-1"></a><span class="co"># For samples of different sizes:</span></span>
+<span id="cb158-2"><a href="#cb158-2" aria-hidden="true" tabindex="-1"></a>pwr<span class="sc">::</span><span class="fu">pwr.t2n.test</span>(<span class="at">n1 =</span> <span class="dv">300</span>, <span class="at">n2 =</span> <span class="dv">350</span>, <span class="at">d=</span> <span class="cn">NULL</span>, <span class="at">sig.level =</span> <span class="fl">0.05</span>, <span class="at">power =</span> <span class="fl">0.80</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+     t test power calculation 
+
+             n1 = 300
+             n2 = 350
+              d = 0.2207291
+      sig.level = 0.05
+          power = 0.8
+    alternative = two.sided</code></pre>
+</div>
+</div>
+<p>E.g. this says that with sample sizes of 300 and 350, the minimum detectable effect size for 80% power is 0.22. If we want to find out the minimum sample sizes needed for an effect size of 0.15 (698 for each group = 1,396 total).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb160"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb160-1"><a href="#cb160-1" aria-hidden="true" tabindex="-1"></a><span class="co"># For samples of different sizes:</span></span>
+<span id="cb160-2"><a href="#cb160-2" aria-hidden="true" tabindex="-1"></a>pwr<span class="sc">::</span><span class="fu">pwr.t.test</span>(<span class="at">n =</span> <span class="cn">NULL</span>, <span class="at">d =</span> <span class="fl">0.15</span>, <span class="at">sig.level =</span> <span class="fl">0.05</span>, <span class="at">power =</span> <span class="fl">0.80</span>, <span class="at">type =</span> <span class="st">&quot;two.sample&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+     Two-sample t test power calculation 
+
+              n = 698.6382
+              d = 0.15
+      sig.level = 0.05
+          power = 0.8
+    alternative = two.sided
+
+NOTE: n is number in *each* group</code></pre>
+</div>
+</div>
+<p>Other power analysis packages include <code>pwrss</code> (a range of options, inc plots), <code>BUCSS</code> (using previously published test statistics for sample size planning), <code>MBESS</code> (using confidence limits), <code>PowerUpR</code> (for multilevel designs), <code>webpower</code> (a range of options), <code>simglm</code> (generalised linear mixed models), <code>Superpower</code> (simulation for ANOVA designs only).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb162"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb162-1"><a href="#cb162-1" aria-hidden="true" tabindex="-1"></a><span class="co"># some examples from pwrss - determining minimum sample size</span></span>
+<span id="cb162-2"><a href="#cb162-2" aria-hidden="true" tabindex="-1"></a><span class="co"># independent samples</span></span>
+<span id="cb162-3"><a href="#cb162-3" aria-hidden="true" tabindex="-1"></a>pwrss<span class="sc">::</span><span class="fu">pwrss.t.2means</span>(<span class="at">mu1 =</span> <span class="dv">30</span>, <span class="at">mu2 =</span> <span class="dv">28</span>, <span class="at">sd1 =</span> <span class="dv">12</span>, <span class="at">sd2 =</span> <span class="dv">8</span>, <span class="at">kappa =</span> <span class="dv">1</span>, </span>
+<span id="cb162-4"><a href="#cb162-4" aria-hidden="true" tabindex="-1"></a>               <span class="at">power =</span> .<span class="dv">80</span>, <span class="at">alpha =</span> <span class="fl">0.05</span>,</span>
+<span id="cb162-5"><a href="#cb162-5" aria-hidden="true" tabindex="-1"></a>               <span class="at">alternative =</span> <span class="st">&quot;not equal&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> Difference between Two means 
+ (Independent Samples t Test) 
+ H0: mu1 = mu2 
+ HA: mu1 != mu2 
+ ------------------------------ 
+  Statistical power = 0.8 
+  n1 = 410 
+  n2 = 410 
+ ------------------------------ 
+ Alternative = &quot;not equal&quot; 
+ Degrees of freedom = 818 
+ Non-centrality parameter = 2.808 
+ Type I error rate = 0.05 
+ Type II error rate = 0.2 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb164"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb164-1"><a href="#cb164-1" aria-hidden="true" tabindex="-1"></a><span class="co"># paired samples</span></span>
+<span id="cb164-2"><a href="#cb164-2" aria-hidden="true" tabindex="-1"></a>pwrss<span class="sc">::</span><span class="fu">pwrss.t.2means</span>(<span class="at">mu1 =</span> <span class="dv">30</span>, <span class="at">mu2 =</span> <span class="dv">28</span>, <span class="at">sd1 =</span> <span class="dv">12</span>, <span class="at">sd2 =</span> <span class="dv">8</span>, </span>
+<span id="cb164-3"><a href="#cb164-3" aria-hidden="true" tabindex="-1"></a>               <span class="at">paired =</span> <span class="cn">TRUE</span>, <span class="at">paired.r =</span> <span class="fl">0.50</span>,</span>
+<span id="cb164-4"><a href="#cb164-4" aria-hidden="true" tabindex="-1"></a>               <span class="at">power =</span> .<span class="dv">80</span>, <span class="at">alpha =</span> <span class="fl">0.05</span>,</span>
+<span id="cb164-5"><a href="#cb164-5" aria-hidden="true" tabindex="-1"></a>               <span class="at">alternative =</span> <span class="st">&quot;not equal&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> Difference between Two means 
+ (Paired Samples t Test) 
+ H0: mu1 = mu2 
+ HA: mu1 != mu2 
+ ------------------------------ 
+  Statistical power = 0.8 
+  n = 222 
+ ------------------------------ 
+ Alternative = &quot;not equal&quot; 
+ Degrees of freedom = 221 
+ Non-centrality parameter = 2.816 
+ Type I error rate = 0.05 
+ Type II error rate = 0.2 </code></pre>
+</div>
 </div>
 </section>
 </section>

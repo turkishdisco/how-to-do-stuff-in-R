@@ -40,7 +40,9 @@ p_load(
   psych,
   rstatix,
   ggcorrplot,
-  broom)
+  broom,
+  pwr,
+  pwrss)
 ```
 
 # Update packages
@@ -288,7 +290,12 @@ DBI::dbWriteTable(conn = con,
 ```{r}
 airquality %>% mutate(Ozone = replace_na(Ozone, 0))
 
+# examples using across()
 airquality %>% mutate(across(everything(), ~ replace_na(., 0)))
+
+iris %>% mutate(across(ends_with(".Length"), ~ replace_na(., 0)))
+
+iris %>% mutate(across(starts_with(c("Sepal", "Petal")), ~ replace_na(., 0)))
 ```
 
 `tidyr::fill`
@@ -1738,4 +1745,48 @@ anova(model, model2)
 # chi-square (deviance)
 anova(m1, test = "Chisq")
 ```
+
+
+## Statistical power
+```{r}
+# Using pwr package. Note: you must leave one of the parameters blank to estimate it, e.g.
+# if you want minimum power detectable at b=0.8, leave d as d = NULL
+# Permissible values for type = two.sample, one.sample, paired
+# Default value of alternative is "two.sided"
+pwr::pwr.t.test(d = 0.25, 
+                n = 30, 
+                power = 0.80,
+                sig.level = 0.05, 
+                type = "two.sample",
+                alternative="two.sided")
+```
+
+```{r}
+#| eval: true
+# For samples of different sizes:
+pwr::pwr.t2n.test(n1 = 300, n2 = 350, d= NULL, sig.level = 0.05, power = 0.80)
+```
+E.g. this says that with sample sizes of 300 and 350, the minimum detectable effect size for 80% power is 0.22. If we want to find out the minimum sample sizes needed for an effect size of 0.15 (698 for each group = 1,396 total).
+```{r}
+#| eval: true
+# For samples of different sizes:
+pwr::pwr.t.test(n = NULL, d = 0.15, sig.level = 0.05, power = 0.80, type = "two.sample")
+```
+Other power analysis packages include `pwrss` (a range of options, inc plots), `BUCSS` (using previously published test statistics for sample size planning), `MBESS` (using confidence limits), `PowerUpR` (for multilevel designs), `webpower` (a range of options), `simglm` (generalised linear mixed models), `Superpower` (simulation for ANOVA designs only). 
+
+```{r}
+#| eval: true
+# some examples from pwrss - determining minimum sample size
+# independent samples
+pwrss::pwrss.t.2means(mu1 = 30, mu2 = 28, sd1 = 12, sd2 = 8, kappa = 1, 
+               power = .80, alpha = 0.05,
+               alternative = "not equal")
+
+# paired samples
+pwrss::pwrss.t.2means(mu1 = 30, mu2 = 28, sd1 = 12, sd2 = 8, 
+               paired = TRUE, paired.r = 0.50,
+               power = .80, alpha = 0.05,
+               alternative = "not equal")
+```
+
 
