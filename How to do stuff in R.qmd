@@ -49,11 +49,11 @@ p_load(
 After updating your version of R (not RStudio), you will have a brand new directory devoid of packages you installed with the previous R version. Below is a way to find a list of all these packages and reinstall them with the new version of R (as described [here](https://stackoverflow.com/questions/61808153/installr-does-not-copy-over-packages-to-new-version-of-r)).
 ```{r}
 # before installing, find where the current library is stored:
-.libPaths()
-# copy and paste this in a text document 
+path = .libPaths()[1]
+# this will give you the current library. You may need to go back and edit, e.g.
+# change win-library/4.4 to 4.3. 
 
-# once you have updated R, copy the path of the old library into lib.loc below 
-old_packages <- installed.packages(lib.loc = "/Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library")
+old_packages <- installed.packages(lib.loc = path)
 
 # create a list of currently installed packages
 new_packages <- installed.packages()
@@ -326,6 +326,10 @@ airquality %>% drop_na()
 
 # Drop NA in specific columns
 airquality %>% drop_na(Ozone, Solar.R)
+
+# Note: for large datasets, consider data.table:
+# dt = as.data.table(df)
+# dt[complete.cases(dt)]
 ```
 
 To remove rows that contain all NA (i.e. retain rows with some non-NA content):
@@ -454,12 +458,11 @@ df %>% mutate(flag = coalesce(TestMark1A, TestMark2A, TestMark3A))
 ```
 
 
-## Filter
+## Filter and other rowwise functions
 Note that filtering is faster on ungrouped data.
 ```{r}
 mtcars %>% filter(gear >= 4 & hp > 109)
 ```
-
 
 
 ### Slice
@@ -505,6 +508,37 @@ mtcars %>% slice_max(mpg, n=5)
 mtcars %>% slice_min(qsec, n=5)
 ```
 
+### `pmax` and `pmin`
+```{r}
+#| eval: true
+#| echo: false
+# set up data
+set.seed(2024)
+df = data.frame(
+ A = sample(1:100, 50, replace = TRUE),
+ B = sample(1:100, 50, replace = TRUE),
+ C = sample(1:100, 50, replace = TRUE))
+```
+
+In this recipe, we find the minimum or maximum value for each row across a specified range of columns. Here is the data:
+```{r}
+#| eval: true
+#| echo: true
+head(df)
+```
+So we want to find the maximum value for each row across each of the three columns.
+
+```{r}
+#| eval: true
+#| echo: true
+
+df = df %>%
+ mutate(min_val = pmin(A, B, C, na.rm=T),
+        max_val = pmax(A, B, C, na.rm=T))
+
+head(df)
+```
+Here we see that the min value for row 1 is 27 (col C) and the max is 66 (col A). 
 
 
 ## Deriving new variables
