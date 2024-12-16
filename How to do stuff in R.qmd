@@ -28,6 +28,8 @@ A compendium of useful code snippets and recipes for wrangling and analysis in R
 #| label: packages
 #| eval: true
 #| echo: false
+#| message: false
+#| output: false
 library(pacman)
 p_load(
   tidyverse,
