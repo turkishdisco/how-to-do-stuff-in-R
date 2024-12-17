@@ -348,8 +348,9 @@ starwars_long = starwars %>%
   select(-c(films, vehicles, starships)) %>%
   pivot_longer(cols = c(height, mass, birth_year), 
                names_to = "measure", 
-               values_to = "value")
-
+               values_to = "value",
+               values_transform = as.character)
+# note that pivot_longer won't combine columns of different types - if this happens, use values_transform with a specified function
 head(starwars_long) 
 ```
 
