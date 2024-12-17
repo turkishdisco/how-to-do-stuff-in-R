@@ -903,6 +903,8 @@ str_trunc(long_string, 19, ellipsis = "")
 #| eval: true
 string = "I love R"
 str_sub(string, 3, 6)
+str_sub(string, 1, -2) # remove final character 
+str_sub(string, 2, -1) # remove first character (-1 means end of string)
 ```
 
 ```{r}
@@ -946,6 +948,78 @@ str_detect(string, "^a")
 
 # ends with a
 str_detect(string, "a$")
+```
+
+Some base R recipes
+```{r}
+# remove a final full stop (. needs to be escaped with \\ as it's a special character)
+cleaned_vector = gsub("\\.$", "", vector)
+
+# Insert space (\\1) every 3 characters ({3}):
+sub("\\s+$", "", gsub('(.{3})', '\\1 ', vector))
+
+# retain only numbers
+data = c("foo_5", "bar_7")
+gsub(".*_", "", data)
+readr::parse_number(data)
+
+# General syntax for grep()
+grep(pattern_to_find, data, ignore.case = TRUE, value = T) # value=T: show results
+
+# Filter cells that contain the letter F:
+data %>% filter(grepl("F", variable))
+
+# look for string consisting of letter-letter-number-number-letter-letter
+grep("[A-Z][A-Z][0-9][0-9][A-Z][A-Z]", df$var, value=T)
+
+# find a string beginning with a letter between A-Z, followed by a 2, followed by x
+grep("[a-z]2[x]", data, value = T)
+
+# Extract everything between parentheses
+df$var = gsub("[\\(\\)]", "", regmatches(df$var, gregexpr("\\(.*?\\)", df$var)))
+```
+
+
+# Generating and sampling random data
+## Generate strings
+```{r}
+# create 25 strings of 6 characters each, using A-Z and 0-9 randomly
+library(stringi)
+code = stringi::stri_rand_strings(25, 6, pattern = "[A-Z0-9]") 
+
+# Add prefix 'OLLIH-' onto the random strings, e.g. OLLIH-273
+codes = paste0("OLLIH-", stringi::stri_rand_strings(25, 3, pattern = "[0-9]"))
+```
+
+## Generate numbers
+```{r}
+# replicate numbers 1 to 10, 10 times (1,2,3,4... 1,2,3,4..., 1,2,3,4...)
+rep(c(1:4), times = 10) 
+
+# Replicate numbers a certain number of times each (1, 1, 2, 2, 3, 3, 4, 4, ...)
+rep(c(1:4), times = 5, each = 2)
+
+# set up random number generator to get replicable results
+set.seed(1)
+
+# Generate 5 random digits between 0 and 1
+runif(5) 
+
+#  With a specified range
+runif(5, min = 0, max = 100) 
+
+# Alternative method using sample()
+sample(x = 1:100, size = 3, replace = F)
+
+# Sample in tidyverse
+sample_n(df, size = 60, replace = F) # random sample of 60 rows from df
+
+# Random normal distribution  
+rnorm(4, mean = 50, sd = 10)
+
+# Truncated normal distribution
+library(msm)
+rtnorm(n, mean=0, sd=1, lower=-Inf, upper=Inf)
 ```
 
 
