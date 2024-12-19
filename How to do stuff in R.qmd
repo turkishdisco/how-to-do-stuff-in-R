@@ -1658,6 +1658,61 @@ xl_output = function(form = NULL,
 ```
 
 
+# Odds and ends
+```{r}
+gc() # garbage collection - A call of gc causes a garbage collection to take place.
+# This will also take place automatically without user intervention, and the primary purpose
+# of calling gc is for the report on memory usage. However, it can be useful to call gc after
+# a large object has been processed or removed, as this may prompt R to return memory to the
+# operating system. It may be more helpful to run this after running some sections of the code.
+```
+
+Web scraping
+```{r}
+library(rvest)
+
+url <- "https://www.gov.uk/government/statistical-data-sets/monthly-management-information-ofsteds-school-inspections-outcomes"
+
+pg <- read_html(url)
+
+# NB there is no October 2019, or April and Sept 2020 MI data
+monthly_files <- html_attr(html_nodes(pg, "a"), "href") %>% 
+  as_tibble() %>%
+  filter(
+    (
+      # Only csv files
+      grepl("https://assets.publishing.service.gov.uk/", value) & grepl("Tables2|latest", value) & grepl(".csv", value) &
+        rm_between(value, "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/", "/", extract = TRUE) >= 838014
+    ),
+    value != "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/920761/Management_information_-_state-funded_schools_1_September_2015_to_31_August_2019.csv"
+  ) %>%
+  distinct() %>% 
+  pull(value)
+
+# count the number of links
+num_links <- length(monthly_files)
+
+# Download files -------------------------------------------------------
+
+# Create function that downloads file with base file name to data folder
+download.w.file.name <- function(url, folder){
+  
+  download.file(url, mode="wb", method = "libcurl", destfile = file.path(folder, basename(url)))
+  
+}
+
+# Download
+lapply(monthly_files, download.w.file.name, folder = ofsted_dir)
+
+# count the number of files downloaded
+ofsted_file_paths <- list.files(ofsted_dir, full.names = TRUE)
+
+num_files <- length(list.files(ofsted_dir))
+
+print(paste(num_files, "files downloaded from", num_links, "links"))
+```
+
+
 # Statistical tests
 
 ## Chi-square
