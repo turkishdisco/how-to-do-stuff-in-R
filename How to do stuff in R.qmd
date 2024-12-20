@@ -169,6 +169,13 @@ df = odbc::dbGetQuery(
 
 ## Data validation
 ### Missing values
+Count number or percent of missing observations for each column
+```{r}
+airquality %>%
+  summarise(across(everything(), ~sum(is.na(.) / n() )))
+```
+
+
 Count missing observations across all columns
 ```{r}
 #| eval: true
