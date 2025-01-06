@@ -1757,6 +1757,13 @@ gc() # garbage collection - A call of gc causes a garbage collection to take pla
 # of calling gc is for the report on memory usage. However, it can be useful to call gc after
 # a large object has been processed or removed, as this may prompt R to return memory to the
 # operating system. It may be more helpful to run this after running some sections of the code.
+
+# use across and ifelse together
+df %>% mutate(across(starts_with("y_"), ~ifelse(.x %in% c("EXS", "GDS"), 1, 0)))
+
+df %>% mutate(across(starts_with(c("c_", "y_")), ~as.numeric(.x)))
+
+df %>% summarise(across(starts_with(c("c_", "y_")), ~mean(.x, na.rm = T)))
 ```
 
 Web scraping
