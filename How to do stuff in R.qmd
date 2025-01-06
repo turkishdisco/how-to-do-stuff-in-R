@@ -512,11 +512,16 @@ df = data.frame(
 df
 ```
 
-`slice` can also be used to display or print a certain number of rows from a tibble.
+`slice` can also be used to display or print a certain number of rows from a tibble (this has superseded dplyr's `top_n`). If you are using this in combination with `tabyl`, you may need to add an `order_by` argument (see below).
 ```{r}
 mtcars %>% slice_max(mpg, n=5)
 mtcars %>% slice_min(qsec, n=5)
-```
+
+df %>% 
+  tabyl(x, y) %>%
+  slice_max(n = 5, order_by = n)
+
+``` 
 
 ### `pmax` and `pmin`
 ```{r}
