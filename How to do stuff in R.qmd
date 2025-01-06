@@ -169,6 +169,13 @@ df = odbc::dbGetQuery(
 
 ## Data validation
 ### Missing values
+Count number or percent of missing observations for each column
+```{r}
+airquality %>%
+  summarise(across(everything(), ~sum(is.na(.) / n() )))
+```
+
+
 Count missing observations across all columns
 ```{r}
 #| eval: true
@@ -941,7 +948,6 @@ str_detect(string, "[a-zA-Z][2-7]")
 str_detect(string, "^[A-Za-z0-9\\s\\-\\'\\(\\)]*$")
 ```
 
-
 Anchors
 ```{r}
 # starts with a
@@ -978,6 +984,59 @@ grep("[a-z]2[x]", data, value = T)
 
 # Extract everything between parentheses
 df$var = gsub("[\\(\\)]", "", regmatches(df$var, gregexpr("\\(.*?\\)", df$var)))
+```
+
+Some revived code
+```{r}
+#| eval: true
+# Quantifiers
+quantifiers <- c("1","10","100", "1000","10000", "200")
+
+# Is a 1 followed by 0 or more 0s?
+quantifiers[str_detect(quantifiers, "10*")]
+# is a 1 followed by 1 or more 0s?
+quantifiers[str_detect(quantifiers, "10+")]
+
+
+# find 'pupil' OR 'pupils'
+optional_element <- c("pupil", "pupils", "students")
+#find pupil or it's plurals
+optional_element[str_detect(optional_element, "^pupils?$")]
+
+# Quantifiers and wildcards
+# Now with groupings and anchors
+#1 with even 0s
+quantifiers[str_detect(quantifiers, "^1(00)*$")]
+# This returns one hundred and one thousand (find 1 followed by 2 or 3 zeros)
+quantifiers[str_detect(quantifiers, "^10{2,3}$")]
+# anything followed by 2 zeros
+quantifiers[str_detect(quantifiers, "^.0{2}$")]
+
+
+# character classes
+character_class <- c("hat school", "mat school", "sat school"
+                     ,"cat school")
+
+# first character must be h or s
+character_class[str_detect(character_class, "[hs]at school")]
+# first character must NOT be h or s
+character_class[str_detect(character_class, "[^hs]at school")]
+
+
+# conditionals
+conditionals <- c("mixed", "boys", "girls")
+# detect mixed or boys
+conditionals[str_detect(conditionals, "^(mixed|boys)$")]
+
+escapes <- c("school", "schools", "school's")
+# find possessive schools
+escapes[str_detect(escapes, "school\\'s")]
+
+# ERE Character classes
+character_classes_ERE <- c("West School", "1 School", 
+                           "North School")
+# find a school with a digit in it
+character_classes_ERE[str_detect(character_classes_ERE, "[:digit:]")]
 ```
 
 
@@ -1104,6 +1163,39 @@ ggplot2::diamonds %>%
   adorn_ns(position = "front") %>% # use "rear" to switch position
   mutate(across(everything(), ~ str_replace_all(., "  ", " ")))
 ```
+
+
+# Iteration/for loops
+```{r}
+#| eval: true
+data = data.frame(
+  df1 = rnorm(10),
+  df2 = rnorm(10),
+  df3 = rnorm(10))
+
+col_median = function(df){
+  output = numeric(ncol(df))
+  for (i in seq_along(df)){
+    output[[i]] = median(df[[i]])
+  }
+  output
+}
+col_median(data)
+```
+
+Use a for loop to create a list of dataframes with random data
+```{r}
+set.seed(2020)
+
+# create empty list
+e <- list()
+
+for (i in 1:3) {
+  e[i] <- list(rnorm(n = 30, mean = 50, sd = 12))
+  samples = data.frame(e)
+}
+```
+
 
 
 # Functions
@@ -1729,6 +1821,7 @@ titanic %>%
 # look at observed - save this table for later
 results = table(titanic$Survived, titanic$Pclass)
 ```
+
 Conduct the chi-square test on this table
 ```{r}
 #| eval: true
@@ -1747,7 +1840,7 @@ Residuals
 chisq.test(results)$residuals
 
 # visualise residuals
-# corrplot(chisq.test(results)$residuals, is.cor = FALSE)
+# corrplot::corrplot(chisq.test(results)$residuals, is.cor = FALSE)
 ```
 
 ## Correlation
@@ -1775,7 +1868,7 @@ state_cor = cor(states, use="everything", method="pearson")
 state_cor[upper.tri(state_cor)] <- NA
 ```
 
-### Statistical test for significance
+Test correlation for significance
 ```{r}
 #| eval: true
 # for a single pair of variables
@@ -1785,7 +1878,7 @@ cor.test(states$Illiteracy, states$Murder, method = "pearson")
 psych::corr.test(states, method = "pearson", use = "complete")
 ```
 
-### Correlation with `rstatix` 
+Correlation with `rstatix` 
 Correlation tests for specified set of variables Optionally, filter out autocorrelations with `cor != 1` and create a new variable for the coefficient of determination (R2) where 0.01 is small, 0.09 to 0.25 is medium, and > 0.25 is a large effect size. 
 ```{r}
 #| eval: true
@@ -1883,13 +1976,19 @@ broom::tidy(model, confint=T)
 broom::glance(model) # gives r2, AIC/BIC, etc
 ```
 
-Other model outputs
+Other model outputs and diagnostics
 ```{r}
 coefficients(model)
 confint(model)
 residuals(model)
-plot(model) # will produce a range of plots
+```
 
+```{r}
+plot(model) # will produce a range of plots
+```
+
+
+```{r}
 # predict with new data
 new.height = data.frame(height = c(99, 105, 166))
 predict(model, newdata = new.height)
@@ -1903,13 +2002,243 @@ augment(model) %>% head()
 ```
 
 Model comparison
-
 ```{r}
 # Compare models
 anova(model, model2)
 
 # chi-square (deviance)
 anova(m1, test = "Chisq")
+```
+
+Regression with `car`
+```{r}
+# Normality
+car::qqPlot(model, labels=row.names(model), id.method="identify",simulate=TRUE, main="Q-Q Plot")
+
+# Independence of errors
+car::durbinWatsonTest(model)   # non-sig equals lack of autocorrelation
+# lag value=1 means each obs is being compared to one next to it
+
+# Linearity (only available if model has no interactions)
+car::crPlots(model)
+
+# Homoscedasticity (check for non-constant error variance)
+car::ncvTest(model)
+# If non-sig, assumption is met.
+
+car::spreadLevelPlot(model) # looking for a horizontal line
+
+# Multicollinearity
+# Variance inflation factor (VIF)
+car::vif(model)
+# sqrt(VIF) > 2 indicates a potential problem
+sqrt(car::vif(model)) > 2
+
+# Outliers
+car::outlierTest(model) # locates largest Studentized residual in absolute value and computes Bonferroni-corrected t-test
+
+car::influencePlot(model, id.method="identify", main="Influence Plot",
+              sub="Circle size is proportional to Cook's distance")
+
+# Explanation:
+# Points above +2 or below -2 on the vertical axis are considered outliers. 
+# Points above 0.2 or 0.3 on the horizontal axis have high leverage (unusual 
+# combinations of predictor values). Circle size is proportional to influence. 
+# Observations depicted by large circles may have disproportionate influence on the 
+# parameters estimates of the model.
+```
+
+# Linear mixed effects modelling
+```{r}
+library(lme4) # original lme package
+library(lmerTest) # for obtaining p-values for estimates
+# When to include as random effect? Harrison (2015) suggests when there are >5 levels. 
+# BBolker (https://stat.ethz.ch/pipermail/r-sig-mixed-models/2013q4/021094.html) suggests:
+# Rules of thumb are >=5 levels for estimating a random effect, and 10-20 observations per parameter
+
+model = lmer(outcome ~ predictor1*predictor2 + (1 | subject), 
+            na.action = na.omit, 
+            REML = F,  
+            control = lmerControl(optimizer = "bobyqa", calc.derivs = T), 
+            data=data) # random intercept for subject
+
+model2 = lmer(outcome ~ predictor1*predictor2 + (1 + subject | predictor), ...) # random slope for subject over predictor1
+
+# When adding predictors to previous models, use update
+model3 = update(model2, .~. + new_predictor)
+
+# Luke (2017): REML=T is preferred when calculating p-values for each estimate, and
+# Satterthwaite or Kenward-Rogers are preferred over likelihood ratio tests or t-as-z (1.96)
+
+summary(model) # gives Satterthwaite p-values by default - requires REML=T
+summary(model, ddf="Kenward-Roger") # can also choose "Satterthwaite" or "lme4". 
+# Choose Satterthwaite for ML, but choose Kenward Roger for models fit using REML. 
+
+anova(model, model2)
+
+# for tidy output, use the broom.mixed package
+broom.mixed::tidy(model) %>% mutate(across(where(is.numeric), round, 5))
+# need to use the mutate() function to turn of scientific notation of p-values as
+# options(scipen=999) doesn't work.
+
+# if convergence issues:
+afex::all_fit(model) # will try with many different optimisers
+
+# To compute LRT for each fixed effect automatically, use
+afex::mixed(outcome ~ predictor1*predictor2 + (1|subject), data = data, method="LRT")
+afex::mixed(model, dataset, method="LRT")
+# the first LRT result will compare the first model with a null model. 
+# I think this uses type III sums of squares... by default, anova() uses Type I. 
+
+# Confidence intervals
+confint.merMod(model, method="Wald")
+# note that the default method is 'profile', but there's also 'boot'(strapping) which takes ages.
+# As stated by Bates et al (2015, p35), all 3 produce v. similar results. Wald is just for fixed effects.
+# see this? https://cran.r-project.org/web/packages/merTools/vignettes/Using_predictInterval.html 
+
+# Ben Bolker suggests here (https://stat.ethz.ch/pipermail/r-sig-mixed-models/2013q4/021094.html)
+# that profile = slow but fairly accurate; Wald = fast but least accurate; boot = slowest but most accurate
+
+# diagnostics
+# two things: (1) histogram of model residuals
+hist(residuals(model)) 
+qplot(resid(model)) # as recommended by Linck & Cunnings 2015
+plot(resid(model))
+
+# (2) histograms of random effects
+# Linck & Cunnings 2015 method:
+# Save random effects into object, then plot histograms on lists within it
+rfx <- ranef(model)
+qplot(rfx$participant$'(Intercept)') # histogram
+plot(rfx$participant$'(Intercept)') # for non-constancy
+qplot(rfx$school$'age') # for a nested ranef, e.g. (1 + age | school)
+lattice::dotplot(ranef(model, condVar = TRUE))
+
+# another method to access intercept values
+model.refs <- as.vector(ranef(model)[[1]])[,1]
+hist(model.refs)
+
+# pseudo R2
+library(MuMIn)
+r.squaredGLMM(model)
+
+library(influence.ME) # iteratively deletes subjects or observations to examine influence
+model.infl <- influence(model, "code/upn/child/etc")  # computationally intensive- wait!
+
+without.int <- exclude.influence(model, grouping = "group", level = "level")
+summary(model)
+summary(without.int)
+```
+
+
+### Quantile regression
+```{r}
+library(quantreg)
+m1 = rq(dv ~ iv, tau=c(.05, .25, .5, .75, .95), data=df)
+```
+
+## Principal components / factor analysis
+```{r}
+# Can use PCA as a precursor to factor analysis (covered below), i.e. to choose # of factors
+# ---- Note that PCA can be achieved with:
+# - pca() / psych::principal()
+# - princomp() [base stats], or 
+# - prcomp() [base stats]
+# Using An Introduction to Applied Multivariate Analysis with R (Everitt & Hothorn)
+# They use their own 'MVA' package
+library(MVA)
+
+head_dat = boot::frets[, c("l1", "l2")]
+cov(head_dat)
+head_pca = princomp(x = head_dat)
+head_pca
+summary(head_pca, loadings = T)
+
+xlim = range(head_pca$scores[,1])
+plot(head_pca$scores, xlim=xlim, ylim=xlim)
+screeplot(head_pca)
+
+# example with Big5 dataset
+# From here: https://www.r-bloggers.com/five-ways-to-calculate-internal-consistency/
+# BIG5 dataset can be downloaded here: http://personality-testing.info/_rawdata/BIG5.zip
+# Data for 19719 respondents on 50 items (10 for each dimension)
+
+
+# import data and isolate just the raw scores
+setwd("~/Google Drive/STATISTICS/R/R script files")
+df = read.csv("big5data.csv", header=T, sep="\t")
+df = df[, -c(1:7)]
+
+psych::cortest.bartlett(df) # should be statistically significant
+# for oblique (oblimin) rotation, load the GPArotation package
+library(GPArotation)
+pc1 = psych::principal(df, nfactors = 5, rotate = "oblimin", scores = T)
+pc1
+# screeplot
+plot(pc1$values, type="b")
+psych::alpha(df)
+
+# princomp
+pca = princomp(df)
+summary(pca)
+# look for proportion of variance explained 
+plot(pca) # choose 3
+
+# Factor analysis ----
+fit <- factanal(df, 3, rotation="varimax") # varimax is default
+print(fit, digits=2, cutoff=.3, sort=TRUE)
+# look at bottom for test of hyp that chosen number of factors is sufficient.
+# p < .05 means it's sufficient. 
+
+# extract the factor scores: run it again but specify scores="regression"
+scores = factanal(df, 3, rotation="varimax", scores="regression")
+# returns a list, so access scores with:
+scores$scores
+
+psych::fa()
+#for psych, see: https://m-clark.github.io/posts/2020-04-10-psych-explained/ 
+```
+
+Another more recent example of FA
+```{r}
+# isolate data
+fa_data = res %>%
+  select(yarc.ewr.t1, 
+         phab.alliteration,
+         phab.blending,
+         yarc.lsk,
+         da.train.total,
+         da.post.total,
+         ran.time.total,
+         cpm.raw,
+         bpvs.raw)
+# check for missingness (fine)
+fa_data %>% summarise(across(everything(), ~sum(is.na(.) / n())))
+
+# derive correlation matrix
+cor_mat <- cor(fa_data)
+
+# assumptions ----
+psych::KMO(cor_mat)
+# overall MSA = 0.88
+
+# Bartlett test - looking for significant test result (OK)
+psych::cortest.bartlett(R = cor_mat, n = nrow(res))
+
+# factor extraction (suggests 2 (with values >1)
+eigen(cor_mat)$values
+
+# factor analysis 
+# using oblimin for rotation to allow factors to correlate
+da_factor <- psych::fa(r = cor_mat, nfactors = 2, fm = "minres", rotate = "oblimin")
+da_factor
+# print(da_factor, cut = 0.3)
+
+psych::fa.diagram(da_factor$loadings, digits=2)
+
+# export
+write.csv(loadings(da_factor), "./Outputs/da_efa_loadings.csv")
+write.csv(data.frame((da_factor$communalities)), "./Outputs/da_efa_h2.csv")
 ```
 
 
