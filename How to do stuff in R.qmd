@@ -217,6 +217,9 @@ starwars %>% summarise(homeworld_distinct = n_distinct(homeworld))
 
 # where is.character
 starwars %>% summarise(across(where(is.character), n_distinct))
+
+# recipe to create new column which counts whether the number of distinct values in a column is above 5
+df %>% mutate(five_distinct = ifelse(n_distinct(upn) >=5, 1, 0))
 ```
 
 Count duplicates
@@ -305,6 +308,9 @@ airquality %>% mutate(across(everything(), ~ replace_na(., 0)))
 iris %>% mutate(across(ends_with(".Length"), ~ replace_na(., 0)))
 
 iris %>% mutate(across(starts_with(c("Sepal", "Petal")), ~ replace_na(., 0)))
+
+# using across
+df %>% across(c("var1", "var2", "var3"), ~if_else(is.na(.x), "Missing", .x))
 ```
 
 `tidyr::fill`
@@ -335,6 +341,9 @@ airquality %>% drop_na()
 
 # Drop NA in specific columns
 airquality %>% drop_na(Ozone, Solar.R)
+
+# use across columns
+df %>% drop_na(c(starts_with("c_")))
 
 # Note: for large datasets, consider data.table:
 # dt = as.data.table(df)
@@ -618,19 +627,21 @@ df %>%
 
 
 ### Cross-column operations
-There are many examples of the `across` function in this guide. The examples below use `purrr:pmap`.
+There are many examples of the `across` function in this guide. The examples below use `across()` or `purrr:pmap`.
 
 Recipe: sum values above 0 across columns containing "Recall"
 ```{r}
 df %>% mutate(var1 = pmap_int(select(., contains("Recall")), 
                               ~sum(c(...) > 0, na.rm=T)))
-```
 
-Recipe: count instances of value "k" across columns containing "InputMethods"
-```{r}
+# Recipe: count instances of value "k" across columns containing "InputMethods"
 df %>% mutate(mode_k = pmap_int(select(., contains("InputMethods")), 
                                 ~sum(c(...) %in% "k")))
+
+# change certain variables to factors
+df %>% mutate(across(starts_with("c_", "y_"), ~as.factor(.x))) # also as.numeric, as.character
 ```
+
 
 
 ## Changing variables
@@ -1766,9 +1777,10 @@ gc() # garbage collection - A call of gc causes a garbage collection to take pla
 # use across and ifelse together
 df %>% mutate(across(starts_with("y_"), ~ifelse(.x %in% c("EXS", "GDS"), 1, 0)))
 
-df %>% mutate(across(starts_with(c("c_", "y_")), ~as.numeric(.x)))
-
 df %>% summarise(across(starts_with(c("c_", "y_")), ~mean(.x, na.rm = T)))
+
+# create a lagged variable
+df %>% mutate(across(contains("_lag"), ~ dplyr::lag(.x, n = 1, default = NA)))
 ```
 
 Web scraping
