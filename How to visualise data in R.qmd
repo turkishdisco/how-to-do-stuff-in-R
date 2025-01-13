@@ -27,6 +27,8 @@ A compendium of code for visualising data in R (primarily using `ggplot2`).
 ```{r}
 #| label: packages
 #| echo: false
+#| warning: false
+#| message: false
 library(pacman)
 p_load(
   tidyverse,
@@ -679,6 +681,9 @@ p + scale_y_continuous(labels = scales::label_dollar(prefix = "£"))
 # dates and times
 p + scale_y_continuous(labels = label_date(format = "%Y-%m-%d"))
 p + scale_y_continuous(labels = label_time(format = "%H:%M:%S"))
+p + scale_x_date(date_labels = "%Y", date_breaks = "1 year")
+# to show specific dates only
+p = scale_x_date(breaks = as.Date(c("2022-07-01", "2022-07-03", "2022-07-05")))
 
 # thousands separator
 p + scale_y_continuous(labels = label_comma(big.mark = ","))
@@ -1304,6 +1309,21 @@ mpg %>%
   geom_point() + 
   geom_vline(xintercept = 4.5, colour = "red", linetype="dashed") +
   geom_hline(yintercept = 22.5, colour = "purple", linetype = "twodash")
+```
+
+
+Shading
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+# geom_rect
+ggplot(mtcars, aes(x = wt, y = mpg)) + geom_point() +
+     annotate("rect", xmin = 3, xmax = 4.2, ymin = 12, ymax = 21,
+        alpha = .2)
+  
+# to use with dates:
+# annotate("rect", xmin = as.Date("2020-06-01"), xmax = as.Date("2021-06-01"), ymin = -Inf, ymax = Inf,
+#           alpha = .2)
 ```
 
 
