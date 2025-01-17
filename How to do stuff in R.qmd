@@ -397,7 +397,7 @@ This is a very common data wrangling task. The recipe below converts `starwars` 
 #| eval: true
 
 # original wide format (each character has a single row)
-starwars %>% head()
+starwars %>% select(-c(films)) %>% head()
 
 # conver to long format (each character has 3 rows)
 starwars_long = starwars %>% 
@@ -769,10 +769,10 @@ starwars %>%
 df %>% mutate(
   maladmin_check = recode(
     maladmin_check,
-    "0" = "Maladmin appropriately flagged",
-    "1" = "No maladmin",
-    "2" = "Error: not all marks suppressed",
-    "3" = "Error: MarkStatus missing"
+    "0" = "code1",
+    "1" = "code2",
+    "2" = "error1",
+    "3" = "error2"
   )) 
 ```
 
@@ -852,7 +852,7 @@ cols_to_rename = c("URN", "CensusTerm", "NCYearActual",  "EthnicGroupMajor", "FS
 # append _y1 to distinguish from _y2 data joined later using rename_with
 # (can also provide a suffix argument just in case names are duplicated)
 df_joined = df1 %>%
-  left_join(df2, by = "PupilMatchingRefAnonymous",
+  left_join(df2, by = "PMA",
             suffix = c("_cenY1", "_phonY1")) %>%
   rename_with(~paste0(., "_y1"), .cols = all_of(cols_to_rename))
 ```
@@ -910,12 +910,12 @@ df %>% mutate(review_check = case_when(
 ## Replace strings
 `str_replace_all` (this replaces all matches - `str_replace` only replaces the first match)
 ```{r}
-# Recipe: replace "[1]" with a longer description, e.g. "1 audible time alert"
+# Recipe: replace "[1]" with a longer description, e.g. "1 audible"
 df = df %>%
   mutate(var = str_replace_all(var,
-  c("[1]" = "1 audible time alert",
-    "[2]" = "2 audio version",
-    "[3]" = "3 colour contrast"))
+  c("[1]" = "1 audible",
+    "[2]" = "2 audio",
+    "[3]" = "3 colour"))
   )
 ```
 
@@ -1173,7 +1173,7 @@ filter(date > as.Date("2001-01-19") & date < as.Date("2003-03-21"))
 
 
 # Summarising
-`get_summary_stats` from rstatix. provides different `type`s of summary statistics:
+`get_summary_stats` from the `rstatix` package provides different `type`s of summary statistics:
 
 * full
 * common

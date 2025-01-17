@@ -3230,7 +3230,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">Last updated: 17/01/2025 11:22</p>
+      <p class="date">Last updated: 17/01/2025 11:33</p>
     </div>
   </div>
   
@@ -4158,25 +4158,24 @@ vertical-align: -.125em;
 <p>This is a very common data wrangling task. The recipe below converts <code>starwars</code> to long-format to easily compute summary statistics. Firstly use <code>pivot_longer()</code>:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># original wide format (each character has a single row)</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>starwars <span class="sc">%&gt;%</span> <span class="fu">head</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>starwars <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(films)) <span class="sc">%&gt;%</span> <span class="fu">head</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="kable-table">
 <table class="caption-top table table-sm table-striped small">
 <colgroup>
+<col style="width: 8%">
+<col style="width: 3%">
+<col style="width: 2%">
+<col style="width: 6%">
+<col style="width: 6%">
+<col style="width: 5%">
+<col style="width: 5%">
+<col style="width: 3%">
+<col style="width: 5%">
+<col style="width: 5%">
 <col style="width: 4%">
-<col style="width: 1%">
-<col style="width: 1%">
-<col style="width: 3%">
-<col style="width: 3%">
-<col style="width: 2%">
-<col style="width: 3%">
-<col style="width: 1%">
-<col style="width: 2%">
-<col style="width: 2%">
-<col style="width: 2%">
-<col style="width: 47%">
-<col style="width: 12%">
-<col style="width: 9%">
+<col style="width: 24%">
+<col style="width: 18%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -4191,7 +4190,6 @@ vertical-align: -.125em;
 <th style="text-align: left;">gender</th>
 <th style="text-align: left;">homeworld</th>
 <th style="text-align: left;">species</th>
-<th style="text-align: left;">films</th>
 <th style="text-align: left;">vehicles</th>
 <th style="text-align: left;">starships</th>
 </tr>
@@ -4209,7 +4207,6 @@ vertical-align: -.125em;
 <td style="text-align: left;">masculine</td>
 <td style="text-align: left;">Tatooine</td>
 <td style="text-align: left;">Human</td>
-<td style="text-align: left;">A New Hope , The Empire Strikes Back, Return of the Jedi , Revenge of the Sith , The Force Awakens</td>
 <td style="text-align: left;">Snowspeeder , Imperial Speeder Bike</td>
 <td style="text-align: left;">X-wing , Imperial shuttle</td>
 </tr>
@@ -4225,7 +4222,6 @@ vertical-align: -.125em;
 <td style="text-align: left;">masculine</td>
 <td style="text-align: left;">Tatooine</td>
 <td style="text-align: left;">Droid</td>
-<td style="text-align: left;">A New Hope , The Empire Strikes Back, Return of the Jedi , The Phantom Menace , Attack of the Clones , Revenge of the Sith</td>
 <td style="text-align: left;"></td>
 <td style="text-align: left;"></td>
 </tr>
@@ -4241,7 +4237,6 @@ vertical-align: -.125em;
 <td style="text-align: left;">masculine</td>
 <td style="text-align: left;">Naboo</td>
 <td style="text-align: left;">Droid</td>
-<td style="text-align: left;">A New Hope , The Empire Strikes Back, Return of the Jedi , The Phantom Menace , Attack of the Clones , Revenge of the Sith , The Force Awakens</td>
 <td style="text-align: left;"></td>
 <td style="text-align: left;"></td>
 </tr>
@@ -4257,7 +4252,6 @@ vertical-align: -.125em;
 <td style="text-align: left;">masculine</td>
 <td style="text-align: left;">Tatooine</td>
 <td style="text-align: left;">Human</td>
-<td style="text-align: left;">A New Hope , The Empire Strikes Back, Return of the Jedi , Revenge of the Sith</td>
 <td style="text-align: left;"></td>
 <td style="text-align: left;">TIE Advanced x1</td>
 </tr>
@@ -4273,7 +4267,6 @@ vertical-align: -.125em;
 <td style="text-align: left;">feminine</td>
 <td style="text-align: left;">Alderaan</td>
 <td style="text-align: left;">Human</td>
-<td style="text-align: left;">A New Hope , The Empire Strikes Back, Return of the Jedi , Revenge of the Sith , The Force Awakens</td>
 <td style="text-align: left;">Imperial Speeder Bike</td>
 <td style="text-align: left;"></td>
 </tr>
@@ -4289,7 +4282,6 @@ vertical-align: -.125em;
 <td style="text-align: left;">masculine</td>
 <td style="text-align: left;">Tatooine</td>
 <td style="text-align: left;">Human</td>
-<td style="text-align: left;">A New Hope , Attack of the Clones, Revenge of the Sith</td>
 <td style="text-align: left;"></td>
 <td style="text-align: left;"></td>
 </tr>
@@ -5427,10 +5419,10 @@ vertical-align: -.125em;
 <span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>df <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(</span>
 <span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">maladmin_check =</span> <span class="fu">recode</span>(</span>
 <span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a>    maladmin_check,</span>
-<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;0&quot;</span> <span class="ot">=</span> <span class="st">&quot;Maladmin appropriately flagged&quot;</span>,</span>
-<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;1&quot;</span> <span class="ot">=</span> <span class="st">&quot;No maladmin&quot;</span>,</span>
-<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;2&quot;</span> <span class="ot">=</span> <span class="st">&quot;Error: not all marks suppressed&quot;</span>,</span>
-<span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;3&quot;</span> <span class="ot">=</span> <span class="st">&quot;Error: MarkStatus missing&quot;</span></span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;0&quot;</span> <span class="ot">=</span> <span class="st">&quot;code1&quot;</span>,</span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;1&quot;</span> <span class="ot">=</span> <span class="st">&quot;code2&quot;</span>,</span>
+<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;2&quot;</span> <span class="ot">=</span> <span class="st">&quot;error1&quot;</span>,</span>
+<span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;3&quot;</span> <span class="ot">=</span> <span class="st">&quot;error2&quot;</span></span>
 <span id="cb64-9"><a href="#cb64-9" aria-hidden="true" tabindex="-1"></a>  )) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
@@ -5508,7 +5500,7 @@ vertical-align: -.125em;
 <span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a><span class="co"># append _y1 to distinguish from _y2 data joined later using rename_with</span></span>
 <span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a><span class="co"># (can also provide a suffix argument just in case names are duplicated)</span></span>
 <span id="cb70-6"><a href="#cb70-6" aria-hidden="true" tabindex="-1"></a>df_joined <span class="ot">=</span> df1 <span class="sc">%&gt;%</span></span>
-<span id="cb70-7"><a href="#cb70-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(df2, <span class="at">by =</span> <span class="st">&quot;PupilMatchingRefAnonymous&quot;</span>,</span>
+<span id="cb70-7"><a href="#cb70-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(df2, <span class="at">by =</span> <span class="st">&quot;PMA&quot;</span>,</span>
 <span id="cb70-8"><a href="#cb70-8" aria-hidden="true" tabindex="-1"></a>            <span class="at">suffix =</span> <span class="fu">c</span>(<span class="st">&quot;_cenY1&quot;</span>, <span class="st">&quot;_phonY1&quot;</span>)) <span class="sc">%&gt;%</span></span>
 <span id="cb70-9"><a href="#cb70-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename_with</span>(<span class="sc">~</span><span class="fu">paste0</span>(., <span class="st">&quot;_y1&quot;</span>), <span class="at">.cols =</span> <span class="fu">all_of</span>(cols_to_rename))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -5566,12 +5558,12 @@ vertical-align: -.125em;
 <h2 data-number="4.2" class="anchored" data-anchor-id="replace-strings"><span class="header-section-number">4.2</span> Replace strings</h2>
 <p><code>str_replace_all</code> (this replaces all matches - <code>str_replace</code> only replaces the first match)</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Recipe: replace &quot;[1]&quot; with a longer description, e.g. &quot;1 audible time alert&quot;</span></span>
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Recipe: replace &quot;[1]&quot; with a longer description, e.g. &quot;1 audible&quot;</span></span>
 <span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>df <span class="ot">=</span> df <span class="sc">%&gt;%</span></span>
 <span id="cb73-3"><a href="#cb73-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">var =</span> <span class="fu">str_replace_all</span>(var,</span>
-<span id="cb73-4"><a href="#cb73-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">&quot;[1]&quot;</span> <span class="ot">=</span> <span class="st">&quot;1 audible time alert&quot;</span>,</span>
-<span id="cb73-5"><a href="#cb73-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;[2]&quot;</span> <span class="ot">=</span> <span class="st">&quot;2 audio version&quot;</span>,</span>
-<span id="cb73-6"><a href="#cb73-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;[3]&quot;</span> <span class="ot">=</span> <span class="st">&quot;3 colour contrast&quot;</span>))</span>
+<span id="cb73-4"><a href="#cb73-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">&quot;[1]&quot;</span> <span class="ot">=</span> <span class="st">&quot;1 audible&quot;</span>,</span>
+<span id="cb73-5"><a href="#cb73-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;[2]&quot;</span> <span class="ot">=</span> <span class="st">&quot;2 audio&quot;</span>,</span>
+<span id="cb73-6"><a href="#cb73-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;[3]&quot;</span> <span class="ot">=</span> <span class="st">&quot;3 colour&quot;</span>))</span>
 <span id="cb73-7"><a href="#cb73-7" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
@@ -5872,7 +5864,7 @@ vertical-align: -.125em;
 </section>
 <section id="summarising" class="level1" data-number="7">
 <h1 data-number="7"><span class="header-section-number">7</span> Summarising</h1>
-<p><code>get_summary_stats</code> from rstatix. provides different <code>type</code>s of summary statistics:</p>
+<p><code>get_summary_stats</code> from the <code>rstatix</code> package provides different <code>type</code>s of summary statistics:</p>
 <ul>
 <li>full</li>
 <li>common</li>
