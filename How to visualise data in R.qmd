@@ -37,6 +37,8 @@ p_load(
   palmerpenguins,
   scales,
   RColorBrewer,
+  networkD3,
+  purrr,
   ggExtra,
   GGally,
   ggpubr,
@@ -53,12 +55,12 @@ Note: this guide uses built-in datasets from the following, amongst others:
 - [`palmerpenguins`](https://allisonhorst.github.io/palmerpenguins/)
 - [`gcookbook`](https://cran.r-project.org/web/packages/gcookbook/gcookbook.pdf)
 - [`ggplot2`](https://ggplot2.tidyverse.org/reference/#data)
-- [`gapminder`]
+- [`gapminder`](https://cran.r-project.org/web/packages/gapminder/readme/README.html)
 
 # Structure of a `ggplot`
 
 * **Aesthetics** describe mapping between visual elements and variables in the data, e.g. x-axis may be mapped to "time_point", while colour may be mapped to "gender". 
-* **Geoms** are the type of visual 'marks' on a plot such as lines, points, or bars: they are geometrical objects used to represent data.
+* **Geoms** are the type of visual 'marks' on a plot such as lines, points, or bars (covered under Plot types below): they are geometrical objects used to represent data.
 
 ```{r}
 #| eval: false
@@ -142,12 +144,12 @@ ggplot(shapes, aes(x, y)) +
 #| fig-width: 6
 gcookbook::countries %>%
   filter(Name %in% c("United Kingdom", "Ireland") & Year > 1980) %>%
-  ggplot(aes(x=Year, y=GDP)) +
+  ggplot(aes(x = Year, y = GDP)) +
   geom_line(aes(colour = Name, 
                 linetype = Name), 
             linewidth = 0.8)
 
-# to add arrows to the ends of lines:
+# to add arrows to the ends of lines, add this to geom_line:
 # arrow = arrow(length = unit(0.25, "cm"), ends = "last", type = "closed")
 ```
 
@@ -156,15 +158,15 @@ Adding a line of best fit
 #| fig-height: 3
 #| fig-width: 5
 gcookbook::heightweight %>%
-  ggplot(aes(x=heightIn, y=weightLb)) +
-  geom_point(aes(colour=sex)) +
+  ggplot(aes(x = heightIn, y = weightLb)) +
+  geom_point(aes(colour = sex)) +
   geom_smooth(method = "lm",
               fullrange = T,
               aes(colour=sex))
 ```
 
 
-Use `geom_segment` to add lines from points to fitted regression slope
+Use `geom_segment` to add lines from points to fitted regression slope using some dummy data:
 ```{r}
 #| echo: false
 # prepare data
@@ -174,6 +176,7 @@ df = data.frame(x, y)
 
 mod <- lm(y ~ x, data = df)
 df <- transform(df, Fitted = fitted(mod))
+head(df)
 ```
 
 
@@ -181,14 +184,16 @@ df <- transform(df, Fitted = fitted(mod))
 #| fig-height: 3
 #| fig-width: 5
 
-ggplot(df, aes(x=x, y=y)) + 
+ggplot(df, aes(x = x, y = y)) + 
   geom_point() + 
   theme_classic() + 
-  geom_smooth(method="lm", se=F) + 
+  geom_smooth(method = "lm", se = F) + 
   geom_segment(aes(x = x, y = y,
-                   xend = x, yend = Fitted), linetype = "dashed")
+                   xend = x, yend = Fitted), 
+               linetype = "dashed")
 ```
-If you want to sum a value across factor levels using a linegraph, you need to use `stat_summary`:
+
+If you want to sum a value across factor levels using a linegraph, you need to use `stat_summary` (the alternative is to calculate summary values before piping into ggplot):
 ```{r}
 #| echo: false
 df = data.frame(
@@ -208,6 +213,7 @@ df %>%
 
 
 ### Linetypes
+Example usage: `linetype = "dashed"`
 ```{r}
 #| echo: false
 #| fig-height: 3
@@ -229,21 +235,21 @@ ggplot(linetypes, aes(0, y)) +
 ## Bars
 ### Simple bar chart
 
-* `geom_col` leaves the data as it is and merely represents values already in the dataframe
-* `geom_bar` uses `stat_count` to derive new values from the data. As a result, geom_bar doesn't expect a y-value, but if you provide one then you are telling it to forgo the aggregation it would have done anyway with stat_count.
+* `geom_col` leaves the data as it is and merely represents values already in the dataframe.
+* `geom_bar` uses `stat_count` by default to derive new values from the data. As a result, `geom_bar` doesn't expect a y-value, but if you provide one then you are telling it to forgo the aggregation it would have done anyway with `stat_count`.
 
 Using `stat = "count"`
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
 palmerpenguins::penguins %>%
-  ggplot(aes(x=species, fill=species)) +
-  geom_bar(stat="count", 
+  ggplot(aes(x = species, fill = species)) +
+  geom_bar(stat = "count", # default - can be omitted
            width = 0.8,
            show.legend = F)
 ```
 
-Using `stat = "identity"`
+Using `stat = "identity"` to represent pre-calculated summary stats.
 ```{r}
 #| fig-height: 3
 #| fig-width: 4
@@ -255,7 +261,7 @@ gcookbook::drunk %>%
   geom_bar(stat = "identity", width = 0.8)
 ```
 
-You should also use `stat_identity` if you want to **reorder** bars in descending order.
+You should also use `stat_identity` if you want to **reorder** bars in descending order. The syntax for `reorder` is `reorder(what, by_what)`. Here, `-n` means descending order. 
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
@@ -263,31 +269,26 @@ palmerpenguins::penguins %>%
   group_by(species) %>%
   summarise(n = n()) %>%
   ggplot(aes(reorder(species, -n), n)) +
-  geom_bar(stat = "identity", width = 0.8, aes(fill = species),
+  geom_bar(stat = "identity", width = 0.8, 
+           aes(fill = species),
            show.legend = F)
 ```
 
 
 ### Dodged bar chart
+Dodged bars represent geoms for each level of some factor (here, sex), arranged side by side for ease of comparison. Note that this dataset has NAs. To remove these before graphing, use `drop_na`.
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
 palmerpenguins::penguins %>%
+  # drop_na(sex) %>%
   ggplot(aes(x = island, fill = sex)) +
   geom_bar(position = position_dodge(),
            width = 0.8)
 ```
-Note that the above graph contains NAs. To remove these, use the `subset` function:
-```{r}
-#| eval: false
-penguins %>%
-  drop_na(sex) %>%
-  ggplot(aes(x = island, fill = sex)) + ...
-```
-
 
 ### Stacked bar chart
-A recipe for when you already have a y-axis (e.g. counts or figures for each category of something).
+Stacked bars are placed on top of one another. Here is a recipe for when you already have a y-axis (e.g. counts or figures for each category of something).
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
@@ -300,7 +301,8 @@ palmerpenguins::penguins %>%
 
 
 ## Proportional stacked bar
-When there is an explicit y-value:
+### When there is an explicit y-value
+Use this recipe if your dataframe already has a variable representing the y-value (e.g. `count`). Notice use of `stat_identity`.
 ```{r}
 #| echo: false
 
@@ -319,14 +321,11 @@ prop_df
 
 prop_df %>%
   ggplot(aes(x = group, y = count, fill = type)) +
-  geom_bar(position = "fill", stat="identity", width = 0.8) +
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1,
-                                                    scale = 100), 
-                     breaks = c(0, 0.25, 0.5, 0.75, 1)) +
+  geom_bar(position = position_fill(), stat = "identity", width = 0.8) +
   ylab("Proportion")
 ```
 
-When there is no explicit y-value (i.e. counts of a factor)
+### When there is no explicit y-value (i.e. counts of a factor)
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
@@ -334,13 +333,10 @@ palmerpenguins::penguins %>%
   ggplot(aes(x = island, fill = sex)) +
   geom_bar(position = position_fill(),
            width = 0.8) +
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1,
-                                                    scale = 100), 
-                     breaks = c(0, 0.25, 0.5, 0.75, 1)) +
   ylab("Proportion")
 ```
 
-Text is dealt with later on, but to add figures to the above figure you need to manually calculate proportions for each cell:
+Text is dealt with later on, but to add figures to the above figure you need to manually calculate proportions for each cell first and then pipe this into ggplot. The recipe below also has some nifty code for converting decimals into nicely formatted percentages.
 ```{r}
 #| fig-height: 3.5
 #| fig-width: 5
@@ -350,10 +346,9 @@ palmerpenguins::penguins %>%
   mutate(prop = n / sum(n)) %>%
   ggplot(aes(x = island, y = prop, fill = sex)) +
   geom_bar(stat = "identity", width = 0.8) +
-  geom_text(aes(label =
-                  paste0(sprintf("%.1f", prop * 100), "%")), 
+  geom_text(aes(label = paste0(sprintf("%.1f", prop * 100), "%")), 
             position = position_stack(vjust = 0.5),
-            size = 3.5) +
+            size = 3) +
   ylab("Proportion")
   
 # note: to change decimal places, "%.0f", "%.2f" etc
@@ -364,26 +359,30 @@ palmerpenguins::penguins %>%
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
+
 palmerpenguins::penguins %>%
   ggplot(aes(x = species, y = bill_length_mm)) +
+  # this part produces just the I-shaped lines
   stat_boxplot(
     geom ='errorbar', 
     width = 0.5) +
+  # this part produces the boxes
   geom_boxplot(
     notch = F,
     outlier.color = "red",
-    outlier.size = 3
+    outlier.size = 2.5
   )
 ```
 
 ## Violin plot
+A more sophisticated version of a boxplot using density curves to show the distribution for the entire range of values. 
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
 palmerpenguins::penguins %>%
-  ggplot(aes(x=species, y=bill_length_mm)) +
+  ggplot(aes(x = species, y = bill_length_mm)) +
   geom_violin(aes(fill = species),
-              draw_quantiles = c(0.5)) # 0.5 is median
+              draw_quantiles = c(0.5)) # specify 0.5 for median
 ```
 
 ## Dotplot
@@ -399,39 +398,37 @@ palmerpenguins::penguins %>%
 
 
 ## Histogram
-For when there's more data, or binning is better.
+For when there's more data, or binning is better. This only requires an x-axis value. `geom_histogram` usually does a good job of setting the `bindwidth` automatically but this can be manually controlled. 
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
 palmerpenguins::penguins %>%
-  ggplot(aes(x=body_mass_g)) +
+  ggplot(aes(x = body_mass_g)) +
   geom_histogram(binwidth = 100, 
                  fill = "grey", 
                  colour = "black")
 ```
 
-By default, `geom_histogram` will stack bars if there are multiple groups. You can change this by specifying `position` to `identity`:
+Recipe: overlay separate histograms for levels of a factor (here, `cut`). By default, `geom_histogram` will stack bars if there are multiple groups but you can change this by changing `position` to `identity`:
 ```{r}
 #| fig-height: 3
-#| fig-width: 5
+#| fig-width: 6
 ggplot2::diamonds %>%
   ggplot(aes(x = carat, fill = cut)) +
-  geom_histogram(position = "identity", alpha = 0.4)
+  geom_histogram(binwidth = 0.1, position = "identity", alpha = 0.5)
 ```
 
-
-
-Example of a function to iterate through multiple histograms, by group, using `purrr`:
+Sometimes you may want to produce a range of histograms for each level of a factor. Here is a recipe for a function to iterate through multiple histograms, by group, using `purrr`:
 ```{r}
 #| fig-height: 3
 #| fig-width: 4
 # firstly make a vector of all the variable names you want to plot
-vars = c("bill_length_mm", "flipper_length_mm")
+vars = c("bill_length_mm", "flipper_length_mm", "body_mass_g")
 
 # then create a custom graphing function
 hist_fun = function(data, x, y) {
   ggplot(data, aes(x = .data[[x]], fill = .data[[y]]) ) +
-    geom_histogram(alpha=0.5, position = "identity") +
+    geom_histogram(alpha = 0.5, position = "identity") +
     theme_bw() +
     ggtitle(x)
 }
@@ -447,22 +444,23 @@ For large amounts of data. Use `bw` argument to change bandwidth (e.g. if you wa
 #| fig-width: 5
 ggplot2::diamonds %>%
   ggplot(aes(x = carat)) +
-  geom_density(fill = "lightblue", 
-               alpha=0.8)
+  geom_density(bw = 0.05, fill = "lightblue", 
+               alpha = 0.8)
 ```
 
-You may want to overlay distributions for levels of a factor.
+As with the multiple-group histogram example above, you may want to overlay density distributions for levels of a factor.
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
 ggplot2::diamonds %>%
   ggplot(aes(x = carat, fill = cut)) +
-  geom_density(alpha = 0.4)
+  geom_density(bw = 0.05, alpha = 0.4)
 ```
 
 
 
 ## Pie
+Everyone knows that pie charts are illegal in the world of data visualisation, but here's a recipe just in case...
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
@@ -477,8 +475,10 @@ palmerpenguins::penguins %>%
 ```
 
 ## Sankey
+This recipe produces an interactive html Sankey chart using the `networkD3` package. It may take a little set up beforehand according to the data you have. 
 ```{r}
-library(networkD3)
+#| fig-height: 4
+#| fig-width: 5
 
 links = data.frame(
   Var1 = c("Failed_Phonics", "Passed_Phonics", "Failed_Phonics", "Passed_Phonics"),
@@ -495,7 +495,7 @@ links$source <- match(links$source, nodes$name) - 1
 links$target <- match(links$target, nodes$name) - 1
 
 # create Sankey diagram
-sankeyNetwork(Links = links, 
+networkD3::sankeyNetwork(Links = links, 
               Nodes = nodes, 
               Source = "source",
               Target = "target", 
@@ -507,12 +507,15 @@ sankeyNetwork(Links = links,
 
 
 # Some more advanced recipes
-Add histogram to scatterplot using `ggExtra::ggMarginal`
+Add a histogram to a scatterplot using `ggExtra::ggMarginal`. This requires you to set up the basic plot first and save as an object. 
 ```{r}
 #| fig-height: 3
 #| fig-width: 4
+
+# create data
 set.seed(30)
 df1 = data.frame(x = rnorm(500, 50, 10), y = runif(500, 0, 50))
+# set up base plot
 p1 = ggplot(df1, aes(x, y)) + geom_point() + theme_bw()
 
 ggMarginal(p1, type = "histogram",
@@ -522,7 +525,7 @@ ggMarginal(p1, type = "histogram",
 ```
 
 
-Create scatterplot matrix using `GGally::ggpairs`.
+Create a scatterplot matrix using `GGally::ggpairs`. This is quite customisable depending on what you need. Check `help(ggpairs)`
 ```{r}
 #| message: false
 # note: you can also add colouring by factor if you add: ggplot2::aes(colour = Species)
@@ -531,37 +534,35 @@ GGally::ggpairs(iris)
 
 
 # Plotting statistical summary data
-It's possible to plot different statistical summaries within ggplot2, for instance the median.
+Often we want to plot statistical summaries rather than raw data. `ggplot` has functions to do this "in-plot", i.e. instead of you having to compute summaries manually beforehand. One option is to use arguments within `geom_bar`.
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
 palmerpenguins::penguins %>%
-  ggplot(aes(x=species, y=flipper_length_mm)) +
+  ggplot(aes(x = species, y = flipper_length_mm)) +
   geom_bar(fun = "median", 
            stat = "summary")
 ```
 
-However, a more powerful method is to use `stat_summary`.
+However, a more powerful method is to use `stat_summary`. You can plot several summaries together, e.g. if you want points and lines on the same plot. 
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
 palmerpenguins::penguins %>%
-  ggplot(aes(x=species, y=flipper_length_mm)) +
+  ggplot(aes(x = species, y = flipper_length_mm)) +
   stat_summary(fun = "mean", geom = "point") +
-  stat_summary(fun = "mean", geom = "line", aes(group=1)) 
+  stat_summary(fun = "mean", geom = "line", aes(group = 1)) 
 ```
 
-Plot mean and standard deviation using `mean_sdl` (use the `mult` argument to change how many standard deviations are shown around the mean):
+Plot the mean and standard deviation using `mean_sdl` (use the `mult` argument to change how many standard deviations are shown around the mean):
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
 mpg %>%
   ggplot(aes(x = reorder(class, hwy), y = hwy)) +
-  stat_summary(fun = mean,
-               geom = "point") +
+  stat_summary(fun = mean, geom = "point") +
   stat_summary(fun.data = mean_sdl,
-               fun.args = list(
-                 mult = 1),
+               fun.args = list(mult = 1),
                geom = "errorbar",
                width = .4)
 ```
@@ -573,11 +574,9 @@ Add confidence intervals (requires the `Hmisc` package):
 #| fig-width: 5
 mpg %>%
   ggplot(aes(x = reorder(class, hwy), y = hwy)) +
-  stat_summary(fun = "mean", 
-               geom = "point") +
+  stat_summary(fun = "mean", geom = "point") +
   stat_summary(fun.data = "mean_cl_normal",
-               fun.args = list(
-                 conf.int = .95),
+               fun.args = list(conf.int = .95),
                geom = "errorbar",
                width = .4) 
 ```
@@ -585,19 +584,20 @@ mpg %>%
 
 
 ## Pointrange
+This shows the mean and SE. 
 ```{r}
 #| fig-height: 4
-#| fig-width: 3
-palmerpenguins::penguins %>%
+#| fig-width: 4
+
+gapminder::gapminder %>%
+  filter(year %in% c(1950:1990)) %>%
   ggplot() +
-  geom_pointrange(mapping = aes(x = species, y = flipper_length_mm),
-                  stat = "summary",
-                  fun.ymin = min,
-                  fun.ymax = max,
-                  fun.y = median)
+  geom_pointrange(mapping = aes(x = year, y = lifeExp),
+                  stat = "summary")
 ```
 
 # Working with text
+This diagram shows the main text elements in a ggplot2 graph, all of which are controllable (see below).
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
@@ -628,7 +628,9 @@ p + theme(plot.title = element_text(hjust = 0.5))
 p + theme(plot.title = element_text(size = 18))
 ```
 
+
 ## Adding text to charts
+Recipe to add the stat to the top of a bar.
 ```{r}
 #| fig-height: 4
 #| fig-width: 4
@@ -638,10 +640,10 @@ palmerpenguins::penguins %>%
   ggplot(aes(x = species, y = n)) +
   geom_bar(stat = "identity", width = 0.8) +
   geom_text(
-    aes(label = n,
-        vjust = -0.5),
+    aes(label = n, vjust = -0.5),
     size = 3.5)
 ```
+
 
 # Axes
 Note that the same functions are used for x or y axes - adjust accordingly.
@@ -667,6 +669,7 @@ p + theme(axis.title.y = element_text(angle = 0, vjust = 0.5))
 p + theme(axis.ticks.x = element_blank())
 ```
 
+
 ## Axis formatting options
 ```{r}
 #| eval: false
@@ -686,10 +689,11 @@ p + scale_y_continuous(labels = label_date(format = "%Y-%m-%d"))
 p + scale_y_continuous(labels = label_time(format = "%H:%M:%S"))
 ```
 
+
 Using `scale_x_date`: this requires the x-axis to be formatted as a date object.
 ```{r}
 #| eval: false
-# firstly, a nifty function if your date value is in the format 201516
+# firstly, a nifty function if your date value is in the format "201516"
 convert_year = function(year){
   yr = substr(year, 5, 6)
   full_yr = paste0("20", yr, "-01-01")
@@ -707,15 +711,15 @@ p + scale_x_date(breaks = as.Date(c("2022-07-01", "2022-07-03", "2022-07-05")))
 ```
 
 
-
 ## Limits and ranges of axes
+It's often desirable to alter the range of axes on a graph, e.g. to start an axis at zero. Different options result in different effects - specifically, `limits` will actually cut off data points, whereas other options like `coord_cartesian` will leave the underlying data alone but just display the part of the axis you've specified. 
 ```{r}
 #| eval: false
-# xlim, ylim, coord_cartesian (doesn't clip data)
+# coord_cartesian(xlim = c(1,1), ylim = c(1,1)) # (doesn't clip data)
 # scale_x_continuous(limits = c(0, 100))
 ```
 
-`coord_cartesian` and `coord_fixed` in action:
+`coord_cartesian` alters the visible data.
 ```{r}
 #| eval: true
 #| fig-height: 3
@@ -724,8 +728,13 @@ iris %>%
   ggplot(aes(x = Sepal.Length, y = Sepal.Width)) + geom_point() +
   geom_smooth(aes(colour = Species)) +
   coord_cartesian(xlim = c(4.5, 5.5))
-  
-# a 1-to-1 ratio would be a value of 1. A value <1 compresses the y-axis.
+```
+
+`coord_fixed` specifies a ratio for the display of the two axes. A 1-to-1 ratio would be a value of 1. A value <1 compresses the y-axis.
+```{r}
+#| eval: true
+#| fig-height: 3
+#| fig-width: 5
 # Also try e.g. coord_fixed(20/1), i.e. a 20-to-1 ratio where the x-axis is 20 times
 # as long as the y-axis
   
@@ -747,14 +756,18 @@ When you have a discrete x-axis, sometimes you get a lot of space between aesthe
 #| fig-height: 3
 #| fig-width: 5
 
-mpg %>%
+# regular plot with too much padding:
+padding = mpg %>%
     mutate(year = as.factor(year)) %>%
     group_by(year) %>%
     summarise(cty_m = mean(cty, na.rm = T)) %>%
     pivot_longer(c(cty_m)) %>%
     ggplot(aes(x = year, y = value)) +
-    stat_summary(fun = "mean", geom = "line", aes(group = 1)) +
-    scale_x_discrete(expand = c(0.1, 0.1))
+    stat_summary(fun = "mean", geom = "line", aes(group = 1))
+padding
+
+# getting rid of padding:
+padding +  scale_x_discrete(expand = c(0.1, 0.1))
 ```
 
 
@@ -785,8 +798,7 @@ Use custom labels for x-axis: say you have numeric year labels in the data such 
 # define a list of values
 yr_labels = c("2018/19", "2019/20", "2020/21", "2021/22", "2022/23")
 
-plot +
-  scale_x_continuous(labels = yr_labels)
+plot + scale_x_continuous(labels = yr_labels)
 ```
 
 
@@ -828,7 +840,7 @@ theme_af(
 )
 ```
 
-See this guidance: "There's general guidelines for research report figures here https://www.gov.uk/government/publications/research-reports-guide-and-template but there's also a package {afcharts} that formats ggplots in line with government guidelines (https://best-practice-and-impact.github.io/afcharts/). I'd also recommend saving plots as .svg files as they're editable outside of R".
+See this guidance: "There's general guidelines for research report figures here https://www.gov.uk/government/publications/research-reports-guide-and-template but there's also a package {afcharts} that formats ggplots in line with government guidelines (https://best-practice-and-impact.github.io/afcharts/). It's also recommended to save plots as .svg files as they're editable outside of R".
 
 ```{r}
 afcharts::use_afcharts()
@@ -854,6 +866,7 @@ gapminder %>%
     x = "Year",
     y = NULL)
 ```
+
 You will need to reset the default ggplot2 theme if you don't want to use `afcharts` any more.
 ```{r}
 ggplot2::theme_set(theme_grey())
@@ -879,7 +892,31 @@ p + theme_chris()
 
 
 # Legends
-You can control the palette, breaks, labels, and name. E.g. if the factor labels are too long, you can shorten them. Use a separate call to contol other attributes like `linetype` or `fill`. 
+`ggplot` will create a legend automatically if any aesthetic is mapped to a linetype, fill, or colour. 
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+# by default, legends appear on the right
+mpg %>%
+  group_by(year, cyl) %>%
+  summarise(mean_cty = mean(cty)) %>% 
+  ggplot(aes(x = year, y= mean_cty, fill = factor(cyl))) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  ggtitle("right (default)")
+```
+
+
+```{r}
+#| eval: false
+# To change:
+
+p + theme(legend.position = "none") 
+p + theme(legend.position = "top") 
+p + theme(legend.position = "bottom")
+```
+
+
+You can control the palette, breaks, labels, and name. E.g. if the factor labels are too long, you can shorten them. Use a separate call to contol other attributes like `linetype` or `fill`. In fact, the `scale_*_manual` functions are incredibly versatile for this kind of task (and are discussed in more detail below).
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
@@ -896,6 +933,7 @@ gcookbook::countries %>%
 
 To control legend wrapping (i.e. a single horizontal row instead of wrapping into two rows) - especially when `legend.position = "bottom"`.
 ```{r}
+#| eval: false
 p + guides(colour = guide_legend(nrow = 1)) 
 ```
 
@@ -1002,10 +1040,8 @@ Quick manual palettes for sequential and categorical variables (adjust to number
 ```{r}
 seq2 = c("#12436D", "#6BACE6")
 seq3 = c("#12436D", "#2073BC", "#6BACE6")
-
 cat4 = c("#12436D", "#28A197", "#801650", "#F46A25", "#3D3D3D", "#A285D1")
 ```
-
 
 
 ```{r}
@@ -1020,7 +1056,8 @@ purples = c("#260859", "#51397A", "#7D6B9B", "#A89CBD", "#D4CEDE")
 show_col(c(blues, reds, oranges, yellows, greens, purples), ncol=5, cex_label=0.7)
 ```
 
-`scale_*_manual` for manually-created palettes
+
+## `scale_*_manual`
 ```{r}
 #| fig-height: 3
 #| fig-width: 6
@@ -1044,7 +1081,6 @@ scale_colour_manual(name = "",
                         breaks = c("pay", "median_after_tax"),
                         labels = c("Pay", "Median UK"))
 ```
-
 
 
 Use a focus palette to bring attention to one particular series, while keeping the other data there for comparison.
@@ -1074,7 +1110,7 @@ Alternatively, use `gghighlight`:
 countries %>% 
   filter(str_detect(Name, "Republic")) %>%
   ggplot(aes(x=Year, y=GDP)) + 
-  geom_line(aes(colour = Name), size = 0.8) +
+  geom_line(aes(colour = Name), linewidth = 0.8) +
   gghighlight(str_detect(Name, "Czech"),
               label_params = list(size = 3),
               label_key = Code)
@@ -1092,20 +1128,17 @@ p = gcookbook::heightweight %>%
   ggplot(aes(x = heightIn, y = weightLb, colour = heightIn)) +
   geom_point(size = 2)
 
-p +
-  #scale_colour_continuous() +
+p + #scale_colour_continuous() +
   theme_void() +
   ggtitle("scale_colour_continuous")
 
-p +
-  scale_colour_gradient(low = "white", high = "red", na.value = "black") +
+p + scale_colour_gradient(low = "white", high = "red", na.value = "black") +
   theme_void() +
   ggtitle("scale_colour_gradient")
 
 # scale_colour_gradient2 allows you to set a mid-point colour but you have to specify this from
 # the dataframe. Of course you don't have to use the median as the 'midpoint' here. 
-p +
-  scale_colour_gradient2(low = "blue", mid = "white", high = "red",
+p + scale_colour_gradient2(low = "blue", mid = "white", high = "red",
   midpoint = median(gcookbook::heightweight$heightIn)) +
   theme_void()
 
@@ -1114,8 +1147,7 @@ p +
 # the scale. However, you can control this manually for instance if you want to highlight the very 
 # top values. Just specify a vector of values between 0 and 1 to correspond to how you want the 
 # colours mapped to the scale, e.g. values = c(1, 0.9, 0.8, 0.7, 0)
-p +
-  scale_colour_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
+p + scale_colour_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
                                     values = c(1, 0.9, 0.8, 0.7, 0)) +
   theme_void() +
   ggtitle("scale_colour_gradientn")
@@ -1449,6 +1481,7 @@ annotate_figure(ggarrange(a, b, ncol=2,
 ```
 
 ## Saving
+Files will be saved in your current working directory.
 ```{r}
 #| eval: false
 my_plot = ggplot(...)
