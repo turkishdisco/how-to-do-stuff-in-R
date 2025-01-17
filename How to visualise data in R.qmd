@@ -678,16 +678,34 @@ p + scale_y_continuous(labels = scales::label_percent(accuracy = 1, scale = 100)
 p + scale_y_continuous(labels = scales::label_dollar(prefix = "£"))
 # can also specify suffix, big.mark = ",", and decimal.mark = "."
 
+# thousands separator
+p + scale_y_continuous(labels = label_comma(big.mark = ","))
+
 # dates and times
 p + scale_y_continuous(labels = label_date(format = "%Y-%m-%d"))
 p + scale_y_continuous(labels = label_time(format = "%H:%M:%S"))
+```
+
+Using `scale_x_date`: this requires the x-axis to be formatted as a date object.
+```{r}
+# firstly, a nifty function if your date value is in the format 201516
+convert_year = function(year){
+  yr = substr(year, 5, 6)
+  full_yr = paste0("20", yr, "-01-01")
+  full_yr_date = as.Date(full_yr, format = "%Y-%m-%d")
+}
+
+# Note that you can either supply date_labels OR a character vector of custom labels, not both. 
 p + scale_x_date(date_labels = "%Y", date_breaks = "1 year")
+
+# I've found that I get an error saying `breaks` and `labels` have different lengths, so I just supply a dummy value first and this seems to fix it (the dummy value itself isn't displayed).
+p + scale_x_date(labels = c("x", "12/13", "13/14", "14/15", "15/16", "16/17", "17/18", "18/19"))
+
 # to show specific dates only
 p = scale_x_date(breaks = as.Date(c("2022-07-01", "2022-07-03", "2022-07-05")))
-
-# thousands separator
-p + scale_y_continuous(labels = label_comma(big.mark = ","))
 ```
+
+
 
 ## Limits and ranges of axes
 ```{r}
@@ -873,6 +891,11 @@ gcookbook::countries %>%
                         labels = c("UK", "UAE", "US"),
                         name = "Country") +
   theme_minimal()
+```
+
+To control legend wrapping (i.e. a single horizontal row instead of wrapping into two rows) - especially when `legend.position = "bottom"`.
+```{r}
+p + guides(colour = guide_legend(nrow = 1)) 
 ```
 
 
