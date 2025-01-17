@@ -24,6 +24,14 @@ execute:
 
 A compendium of useful code snippets and recipes for wrangling and analysis in R.
 
+Notes:
+
+* This guide assumes familiarity with the following: basic R functions (e.g. `getwd()`, `c()`, `head()`, etc); the tidyverse suite of packages (especially `dplyr`, `tidyr`, and `readr`); and the concept of piping (`%>%`). 
+
+* In many cases the examples here are reproducible, but sometimes code snippets are just non-reproducible examples from previous work.
+
+* This guide is far from perfect or complete, andcontinues to be maintained and updated over time. It is stored in a personal reprository on GitHub [https://github.com/turkishdisco/how-to-do-stuff-in-R](https://github.com/turkishdisco/how-to-do-stuff-in-R) where the underlying Quarto (.qmd) file can be viewed. 
+
 ```{r}
 #| label: packages
 #| eval: true
@@ -47,7 +55,31 @@ p_load(
   pwrss)
 ```
 
-# Update packages
+# Packages {#sec-packages}
+
+## Installing packages
+If you have no intention of sharing your code, you can simply use the following to install and then load the packages you want:
+```{r}
+install.packages("tidyverse")
+library(tidyverse)
+```
+
+Note that sometimes there may be functions from different packages that share the same name, or you may want to be explicit about where you want a function to load from. In that case, you can write the name of the package followed by two colons and then the function name, e.g:
+```{r}
+dplyr::select(mpg, manufacturer, model, displ)
+```
+
+If you DO intend to share your code, you may want to consider using `pacman`. This will load a package if you already have it installed, but it will also install it if not. E.g. someone else executing your code might not have all the necessary packages installed, so instead of checking and installing these manually `pacman` can handle this.
+```{r}
+# load the pacman package first - note, this WILL need to be installed if it isn't already
+install.packages("pacman")
+library(pacman)
+
+# the main function is p_load
+pacman::p_load(tidyverse)
+```
+
+## Updating packages
 After updating your version of R (not RStudio), you will have a brand new directory devoid of packages you installed with the previous R version. Below is a way to find a list of all these packages and reinstall them with the new version of R (as described [here](https://stackoverflow.com/questions/61808153/installr-does-not-copy-over-packages-to-new-version-of-r)).
 ```{r}
 # before installing, find where the current library is stored:
@@ -69,10 +101,10 @@ missing_df <- as.data.frame(old_packages[
 install.packages(missing_df$Package, Ncpus = 3)
 ```
 
-
 # Read data
 ## Read from local storage
 ```{r}
+# optionally state how you want NA values to be handled
 df = readr::read_csv("myFile.csv", na = c(""))
 
 df = readr::read_delim("myFile.txt", delim = "|", na = c(""))
@@ -152,12 +184,12 @@ my_df = my_tbl %>%
 
 # Older method I used:
 # Read in entire table
-df = dbGetQuery(
+df = odbc::dbGetQuery(
   ILR_con,
   "SELECT * 
   FROM table_name")
 
-# Read in selected columns with filtering
+# Read in selected columns with filtering (requires SQL commands)
 df = odbc::dbGetQuery(
   con,
   "SELECT [var1], [var2], [var3]
@@ -171,6 +203,7 @@ df = odbc::dbGetQuery(
 ### Missing values
 Count number or percent of missing observations for each column
 ```{r}
+#| eval: true
 airquality %>%
   summarise(across(everything(), ~sum(is.na(.) / n() )))
 ```
@@ -187,10 +220,10 @@ airquality %>%
 `naniar` package
 ```{r}
 # total % of missing values
-naniar::pct_miss(airquality) 
+naniar::pct_miss(airquality)  # gives a numeric output eg 4.79
 
 # % of rows with any missing values
-naniar::pct_miss_case(airquality) 
+naniar::pct_miss_case(airquality) # gives a numeric output eg 27.45
 ```
 
 Visualise missingness by variable
@@ -212,14 +245,12 @@ naniar::vis_miss(airquality)
 ## Interrogating data
 Count distinct values
 ```{r}
+#| eval: true
 # single vector
 starwars %>% summarise(homeworld_distinct = n_distinct(homeworld))
 
 # where is.character
 starwars %>% summarise(across(where(is.character), n_distinct))
-
-# recipe to create new column which counts whether the number of distinct values in a column is above 5
-df %>% mutate(five_distinct = ifelse(n_distinct(upn) >=5, 1, 0))
 ```
 
 Count duplicates
@@ -300,6 +331,7 @@ DBI::dbWriteTable(conn = con,
 
 `dplyr::replace_na()`
 ```{r}
+# these all reproduce the original dataframe but with amended cell values
 airquality %>% mutate(Ozone = replace_na(Ozone, 0))
 
 # examples using across()
@@ -317,8 +349,11 @@ df %>% across(c("var1", "var2", "var3"), ~if_else(is.na(.x), "Missing", .x))
 This is useful if you have a value that is only inserted once due to grouping, but you need to repeat this value for all the remaining rows.
 ```{r}
 #| eval: true
+#| # notice value for row 5 is missing
+airquality %>% select(Ozone) %>% head()
+
 airquality %>%
-  tidyr::fill(Ozone, .direction = "down") %>% select(Ozone, Solar.R) %>% head()
+  tidyr::fill(Ozone, .direction = "down") %>% select(Ozone) %>% head()
 # note how 18 has been repeated on line 5 (repeated from above)
 ```
 
@@ -357,15 +392,19 @@ airquality[rowSums(is.na(airquality)) != ncol(airquality), ]
 
 
 ## Wide to long format
-Recipe: convert `starwars` to long-format to easily compute summary statistics. Firstly use `pivot_longer()`:
+This is a very common data wrangling task. The recipe below converts `starwars` to long-format to easily compute summary statistics. Firstly use `pivot_longer()`:
 ```{r}
 #| eval: true
+
+# original wide format (each character has a single row)
+starwars %>% head()
+
+# conver to long format (each character has 3 rows)
 starwars_long = starwars %>% 
   select(-c(films, vehicles, starships)) %>%
   pivot_longer(cols = c(height, mass, birth_year), 
                names_to = "measure", 
-               values_to = "value",
-               values_transform = as.character)
+               values_to = "value")
 # note that pivot_longer won't combine columns of different types - if this happens, use values_transform with a specified function
 head(starwars_long) 
 ```
@@ -382,7 +421,7 @@ starwars_long %>%
 
 
 ## Long to wide format
-Recipe: convert `us_rent_income` from long to wide format such that each row represents a single NAME with separate columns for 'income' and 'rent'.
+This example accomplishes the opposite - converting long data to wide format. The recipe below converts `us_rent_income` from long to wide format such that each row represents a single NAME with separate columns for 'income' and 'rent'.
 ```{r}
 #| eval: true
 # original long format
@@ -402,6 +441,7 @@ Note that the `id_cols` argument can be used if your pivot results in NAs for on
 
 ### Melt and cast with `data.table`
 ```{r}
+# a more complicated procedure - select columns starting with Q and a number from 1 to 31 and columns ending in 'Sco', and pivot longer by putting these values into columns called QID and Score:
 melted_df = data.table::melt(df, 
                              measure = patterns("^Q([1-9]|[12][0-9]|3[01])ID$", "Sco$"),
                              value.name = c("QID", "Score"))
@@ -428,7 +468,7 @@ c_list %>% tidyr::separate_longer_delim(a, delim=",")
 c_list %>% tidyr::separate_wider_delim(a, delim=",", names = c("col1", "col2", "col3"))
 ```
 
-Another example - say you want to split this `measure` column into two columns, by the underscore delimiter and then pivot wider to see the values side by side for every measure.
+Another recipe - say you want to split this `measure` column into two columns, by the underscore delimiter and then pivot wider to see the values side by side for every measure.
 ```{r}
 #| eval: true
 
@@ -444,10 +484,10 @@ df %>%
 ```
 
 
-`tidyr::unnest`
-Recipe: given a list of items for each row (e.g. `c("The Empire Strikes Back", "Revenge of the Sith" [...]`), extract each one into a new row.
+A `tidyr::unnest` recipe: given a list of items for each row (e.g. `c("The Empire Strikes Back", "Revenge of the Sith" [...]`), extract each one into a new row.
 ```{r}
 #| eval: true
+
 starwars %>%
   unnest_longer(films) %>%
   select(name, films) %>% head()
@@ -1294,6 +1334,15 @@ if (nrow(df_flagged)==0){
   }
 ```
 
+Example of an if statement based on logical argument in function all
+```{r}
+produce_desc_stats_t <- function(data, strata_input, exclude_nonpartner_schools){
+     data %>%
+     filter(case_when(exclude_nonpartner_schools == TRUE ~ partner_w12345 != "Non-partner school")) %>% 
+     {if exclude_nonpartner_schools == TRUE filter(partner_w12345 != "Non-partner school")} %>% 
+     select(...)
+```
+
 
 ## Tidy evaluation
 Tidy evaluation is a way of achieving data masking, i.e. changing the context of computation. Whenever we use e.g. `starwars %>% filter(height > 200)`, we are using data masking (i.e. `height` instead of `starwars$height`). To change the context of computation, we need to suspend evaluation ('quoting') before resuming in a different environment. Tidy eval is only necessary when arguments vary, so is only really useful within functions.
@@ -1388,6 +1437,7 @@ my_func = function(df, subject){
 
 # Presentation
 ## `gt` package
+This package provides some options for high-quality, highly customisable table outputs. 
 ```{r}
 #| eval: true
 # dummy data
@@ -1501,17 +1551,20 @@ df %>%
 ```
 
 ## `gtsummary`
+`gtsummary` builds on `gt` and is used to summarise dataframes, regession models, and more. Its main function is `tbl_summary`. 
 ```{r}
 #| eval: true 
 
 mpg %>%
   select(displ, cty, hwy, drv, class) %>%
-  tbl_summary(by = class,
-              statistic = list(
-                all_continuous() ~ "{mean} ({sd})",
-                all_categorical() ~ "{n} / {N} ({p}%)"
+  gtsummary::tbl_summary(
+    by = class,
+    statistic = list(
+      all_continuous() ~ "{mean} ({sd})",
+      all_categorical() ~ "{n} / {N} ({p}%)"
     ),
-    digits = all_continuous() ~ 2) %>%
+    digits = all_continuous() ~ 2
+  ) %>%
   as_gt()
 
 
@@ -1519,17 +1572,18 @@ mpg %>%
 mpg %>%
   filter(class %in% c("compact", "pickup")) %>%
   select(displ, cty, hwy, class) %>%
-  tbl_summary(by = class,
-              statistic = list(
-                all_continuous() ~ "{mean} ({sd})"),
-              digits = all_continuous() ~ 2) %>% 
+  gtsummary::tbl_summary(
+    by = class,
+    statistic = list(all_continuous() ~ "{mean} ({sd})"),
+    digits = all_continuous() ~ 2
+  ) %>%
   add_p()
 
 # add CI
 mpg %>%
   filter(class %in% c("compact", "pickup")) %>%
   select(displ, cty, class) %>%
-  tbl_summary(by = class,
+  gtsummary::tbl_summary(by = class,
               type = all_continuous() ~ "continuous2",
               statistic = list(
                 all_continuous() ~ c(
@@ -1538,6 +1592,14 @@ mpg %>%
               digits = all_continuous() ~ 2) %>% 
   add_p() %>%
   add_ci(pattern = "{stat} ({ci})")
+```
+
+Saving a `gtsummary` object as html or docx:
+```{r}
+table %>%
+  gtsummary::as_flex_table() %>% 
+    # flextable::save_as_html(path = "./figs/2024/desc_stats_t_wave_redacted.html")
+    # flextable::save_as_docx(path = "./figs/2024/desc_stats_t.docx")
 ```
 
 
@@ -1551,34 +1613,34 @@ date: last-modified
 date-format: "[Last updated:] DD/MM/YYYY HH:mm"
 format:
   html:
-    standalone: true
-    embed-resources: true
+    standalone: TRUE
+    embed-resources: TRUE
     toc: true
     toc-depth: 3
     toc-expand: 1
-    number-sections: true
+    number-sections: TRUE
     toc-location: left
     df-print: kable
-    code-fold: true
+    code-fold: TRUE
     theme: default
     fontsize: 1em
-    link-external-newwindow: true
+    link-external-newwindow: TRUE
 execute:
-  warning: false
+  warning: FALSE
+  echo: TRUE
+  eval: TRUE
 ---
 ```
 
-To cross-reference another section in your Quarto document (requires `number_sections` to be true in the YAML): 
+Headings and subheadings are specified by prefixing hashtags - `#` for level 1, `##` for level 2, and so on. To cross-reference another section in your Quarto document (requires `number_sections` to be true in the YAML), add a label for each section in curly brackets:
 
-`# Introduction {#sec-introduction}`
+`# Packages {#sec-packages}`
 
-To reference this:
+To reference this use an at-symbol as a link:
+`See @sec-packages` - produces: See @sec-packages. (in an html Quarto output if you hover over this link it should display a preview of that section in the document)
 
-`See @sec-introduction.`
-
-Other Quarto features
+### URLs
 ```{r}
-# URLs
 See the following [page](www.insert-url-here.com). 
 ```
 
@@ -1619,7 +1681,7 @@ saveWorkbook(qa_workbook, file = paste0("./Outputs/", "KS2DF_Queries_", date, "_
 ```
 
 
-Example from DTF work in STA:
+Another more complicated example:
 ```{r}
 xl_output = function(form = NULL,
                      model = NULL, 
@@ -1781,10 +1843,15 @@ df %>% summarise(across(starts_with(c("c_", "y_")), ~mean(.x, na.rm = T)))
 
 # create a lagged variable
 df %>% mutate(across(contains("_lag"), ~ dplyr::lag(.x, n = 1, default = NA)))
+
+# recipe to create new column which counts whether the number of distinct values in a column is above 5
+df %>% mutate(five_distinct = ifelse(n_distinct(upn) >=5, 1, 0))
 ```
 
-Web scraping
+
+# Web scraping
 ```{r}
+#| echo: false
 library(rvest)
 
 url <- "https://www.gov.uk/government/statistical-data-sets/monthly-management-information-ofsteds-school-inspections-outcomes"
@@ -1808,7 +1875,7 @@ monthly_files <- html_attr(html_nodes(pg, "a"), "href") %>%
 # count the number of links
 num_links <- length(monthly_files)
 
-# Download files -------------------------------------------------------
+# Download files --
 
 # Create function that downloads file with base file name to data folder
 download.w.file.name <- function(url, folder){
