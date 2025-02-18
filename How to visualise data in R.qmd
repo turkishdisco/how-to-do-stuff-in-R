@@ -642,6 +642,9 @@ palmerpenguins::penguins %>%
   geom_text(
     aes(label = n, vjust = -0.5),
     size = 3.5)
+
+# if you'd only like to display text for certain conditions:
+# p + geom_text(aes(label = ifelse(condition == "con", paste0(round(diff_pc,1), "%"), ""), vjust = -0.5),size = 3.5)
 ```
 
 
@@ -703,11 +706,21 @@ convert_year = function(year){
 # Note that you can either supply date_labels OR a character vector of custom labels, not both. 
 p + scale_x_date(date_labels = "%Y", date_breaks = "1 year")
 
+# if your x-axis is in date format, you can try the following:
+yrs = c(as.Date("2016-06-01"), as.Date("2017-06-01"), as.Date("2018-06-01"))
+yrs_labs = c("15/16", "16/17", "17/18")
+p + scale_x_date(breaks = yrs,
+                 labels = yrs_labs)
+
 # I've found that I get an error saying `breaks` and `labels` have different lengths, so I just supply a dummy value first and this seems to fix it (the dummy value itself isn't displayed).
 p + scale_x_date(labels = c("x", "12/13", "13/14", "14/15", "15/16", "16/17", "17/18", "18/19"))
 
 # to show specific dates only
 p + scale_x_date(breaks = as.Date(c("2022-07-01", "2022-07-03", "2022-07-05")))
+
+# sometimes it's difficult to see why axis breaks don't match up with labels. In this case it can be 
+# useful to save the graph as an object and then inspect its breaks:
+layer_scales(graph_object)$x$break_positions()
 ```
 
 

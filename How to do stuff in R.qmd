@@ -669,8 +669,8 @@ df %>%
 ### Cross-column operations
 There are many examples of the `across` function in this guide. The examples below use `across()` or `purrr:pmap`.
 
-Recipe: sum values above 0 across columns containing "Recall"
 ```{r}
+# Recipe: sum values above 0 across columns containing "Recall"
 df %>% mutate(var1 = pmap_int(select(., contains("Recall")), 
                               ~sum(c(...) > 0, na.rm=T)))
 
@@ -680,6 +680,12 @@ df %>% mutate(mode_k = pmap_int(select(., contains("InputMethods")),
 
 # change certain variables to factors
 df %>% mutate(across(starts_with("c_", "y_"), ~as.factor(.x))) # also as.numeric, as.character
+
+# round all numeric columns to 0 decimal places. You must now use an anonymous function to do this:
+# where before across(a:b, mean), 
+# now use across(a:b, \(x) mean(x))
+iris %>%
+  mutate(across(where(is.numeric), \(x) round(x, 0)))
 ```
 
 
