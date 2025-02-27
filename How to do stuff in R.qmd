@@ -694,6 +694,9 @@ iris %>%
 ### Rename columns
 ```{r}
 iris %>% rename(sepal_length = "Sepal.Length")
+
+# you can also rename by index
+iris %>% rename("newname" = 1)
 ```
 
 `rename_with` - replace all ".x" and ".y" created by joining (these become _sc and _agg)
@@ -1482,6 +1485,11 @@ df %>%
               table.font.names = "Arial") %>%
   tab_header(title = "Population table") %>%
   tab_options(table.align='left') %>% 
+  tab_style(
+    style = list(cell_text(weight = "bold")),
+    locations = cells_body(
+      columns = c(`2020`),
+      rows = c(2,3))) %>%
   opt_stylize(style = 3) %>%  # styles 1-6
   tab_footnote("Source: World Bank")
 ```
@@ -1645,7 +1653,7 @@ format:
     toc: true
     toc-depth: 3
     toc-expand: 1
-    number-sections: TRUE
+    number-sections: FALSE
     toc-location: left
     df-print: kable
     code-fold: TRUE
@@ -1659,7 +1667,7 @@ execute:
 ---
 ```
 
-Headings and subheadings are specified by prefixing hashtags - `#` for level 1, `##` for level 2, and so on. To cross-reference another section in your Quarto document (requires `number_sections` to be true in the YAML), add a label for each section in curly brackets:
+Headings and subheadings are specified by prefixing hashtags - `#` for level 1, `##` for level 2, and so on. To cross-reference another section in your Quarto document, add a label for each section in curly brackets:
 
 `# Packages {#sec-packages}`
 
@@ -1678,6 +1686,19 @@ See the following [page](www.insert-url-here.com).
 #| fig-align: "left"
 #| fig-height: 4
 #| fig-width: 4
+```
+
+Running Quarto or Markdown render does not save the objects in the workspace. You can use code to run an .Rmd or .qmd file which will save the objects. The code below needs to be copied and pasted into the console. 
+```{r}
+# for markdown
+rmarkdown::render(input = "MTC_4a_model_key_mouse.Rmd", 
+                  output_file = paste0("filename-", Sys.Date(), ".html"),
+                  output_dir = "./Outputs")
+
+# for quarto (note that there is no option to specify the output directory here)
+quarto_render(input = "notebook.qmd", 
+              output_format = "html",
+              output_file = paste0("filename-", Sys.Date(), ".html"))
 ```
 
 
