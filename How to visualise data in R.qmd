@@ -926,8 +926,22 @@ mpg %>%
 p + theme(legend.position = "none") 
 p + theme(legend.position = "top") 
 p + theme(legend.position = "bottom")
+
+# custom location for legend
+p + theme(legend.position = c(0.1, 0.9))
 ```
 
+```{r}
+#| eval: false
+# alter legend box aesthetics, e.g. make transparent
+p + theme(legend.background = element_blank())
+```
+
+To control legend wrapping (i.e. a single horizontal row instead of wrapping into two rows) - especially when `legend.position = "bottom"`.
+```{r}
+#| eval: false
+p + guides(colour = guide_legend(nrow = 1)) 
+```
 
 You can control the palette, breaks, labels, and name. E.g. if the factor labels are too long, you can shorten them. Use a separate call to contol other attributes like `linetype` or `fill`. In fact, the `scale_*_manual` functions are incredibly versatile for this kind of task (and are discussed in more detail below).
 ```{r}
@@ -943,13 +957,6 @@ gcookbook::countries %>%
                         name = "Country") +
   theme_minimal()
 ```
-
-To control legend wrapping (i.e. a single horizontal row instead of wrapping into two rows) - especially when `legend.position = "bottom"`.
-```{r}
-#| eval: false
-p + guides(colour = guide_legend(nrow = 1)) 
-```
-
 
 ## Direct labels
 Sometimes a legend isn't necessary or the right aesthetic choice. Instead, it's possible to append labels directly to dots or lines using `directlabels` or `ggrepel`.
