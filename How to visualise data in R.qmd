@@ -1102,6 +1102,13 @@ scale_colour_manual(name = "",
                         labels = c("Pay", "Median UK"))
 ```
 
+If you would like NA to be a different colour by default
+```{r}
+#| eval: false
+plot +
+  scale_fill_discrete(na.value = "white")
+```
+
 
 Use a focus palette to bring attention to one particular series, while keeping the other data there for comparison.
 ```{r}
@@ -1342,7 +1349,7 @@ eng_reg_map %>%
 
 To add points based on geometry:
 ```{r}
-# say you have a data frame with easting and northing values (these could be lat/long too)
+# say you have a data frame from GIAS with easting and northing values of schools (these could be lat/long too)
 map_df = data.frame(
 school = c(1:15),
 easting = c(427144, 390498, 391459, 453596, 332195, 439952, 397143, 331548, 504305, 527647, 349039, 437349, 504740, 448965, 166988),
@@ -1350,10 +1357,13 @@ northing = c(433927, 323814, 162039,  86591, 391270, 114064, 157408, 390872, 208
 pupils  = c(28, 23, 59, 22, 28, 76, 13, 14, 57, 43, 25, 12, 59, 52, 31)
 )
 
-# crucial step - check which CRS the original map uses
+# the shapefile is based on long/lat, so you need to convert Eastings and Northings.
+# The first step here is to check which CRS the original map uses
 st_crs(eng_reg_map)$epsg
 
-# make sure you use the same CRS for the dataframe when you convert it to sf:
+# use the st_as_sf function to create another version of your dataframe (map_df) - feed in the crs
+# and it will add an additional column called 'geometry'
+
 schools.sf = st_as_sf(map_df, coords = c("easting", "northing"), remove = FALSE, crs = 27700)
 
 # check that the points themselves work
@@ -1364,17 +1374,14 @@ eng_reg_map %>%
   ggplot() +
   geom_sf(fill   = NA,
           colour = "grey50") +
-  geom_sf(data = schools.sf, aes(color = pupils), size = 2) +
-  theme_void() +
-  scale_colour_gradient(low = "grey", high = "red")
+  geom_sf(data = schools.sf, colour = "red", size = 2) +
+  theme_void()
+# optionally if you have used aes(colour = pupils): + scale_colour_gradient(low = "grey", high = "red")
 ```
 
 
 
 # Odd bits for sorting later
-```{r}
-#| eval: false
-```
 
 ## Vertical and horizontal lines
 ```{r}

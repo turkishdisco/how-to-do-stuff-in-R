@@ -665,6 +665,17 @@ df %>%
       T ~ "OK"))
 ```
 
+Note that if you want to supply a formula on the right hand side of case_when, then you need to add `rowwise` in the pipe:
+```{r}
+df %>%
+  rowwise() %>%
+  mutate(new_var = case_when(
+    nchar(var1) == 14 ~ str_sub(var1, 5, 8),
+    T ~ NA_character_
+  ))
+```
+
+Remember to turn off `rowwise` if you want to do any aggregation/counting/grouping, by using `ungroup()`. 
 
 ### Cross-column operations
 There are many examples of the `across` function in this guide. The examples below use `across()` or `purrr:pmap`.
@@ -891,6 +902,14 @@ lapply(form_list, function(x)
               form_max = max(formmark)))
 ```
 
+# Selecting
+Use `dplyr::select()` to select columns by name or index. If you want to select column names that match a list, try this:
+```{r}
+col_list = c("name", "height", "mass")
+
+starwars_subset = subset(starwars, select = names(starwars) %in% col_list)
+head(starwars_subset)
+```
 
 
 
@@ -934,6 +953,9 @@ df = df %>%
 starwars %>% mutate(name = str_to_lower(name))
 
 starwars %>% mutate(gender = str_to_title(gender))
+
+ # to do this across multiple columns
+starwars %>% mutate(across(c(name, homeworld, species), ~ tolower(.x)))
 ```
 
 `str_length`
@@ -1018,6 +1040,9 @@ str_detect(string, "[a-zA-Z][2-7]")
 # look for strings starting with A-Z, a-z, 0-9, dashes, apostrophes, or parentheses and ending
 # with an asterisk
 str_detect(string, "^[A-Za-z0-9\\s\\-\\'\\(\\)]*$")
+
+# find strings with 5 consecutive digits
+str_detect(string, "\\d{5}")
 ```
 
 Anchors
@@ -1165,6 +1190,18 @@ Convert character to date
 my_date = "08/10/2021"
 as.Date(my_date, "%d/%m/%Y")
 ```
+
+Often when you read in Excel data the dates get messed up. Usually these will get converted to character: one good solution is to convert them to numeric first, and then to a date:
+```{r}
+#| eval: false
+
+df %>%
+  mutate(date_col = as.numeric(date_col)) %>%
+  mutate(date_col = lubridate::as_date(date_col, 
+                                       origin = "1899-12-30",
+                                       format = "%d-%m-%Y")
+```
+
 
 There are two ways to extract the year from a `date` object:
 ```{r}
