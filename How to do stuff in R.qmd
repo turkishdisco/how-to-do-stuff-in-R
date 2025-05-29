@@ -1221,6 +1221,17 @@ my_year_dbl = lubridate::year(my_date)
 my_year_dbl
 ```
 
+Calculate the difference between two date/time objects in years
+```{r}
+df %>%
+  mutate(age = as.numeric(difftime(date2, date1, units = "weeks") / 52.25))
+
+# a more accurate method is time_length as this takes into account the fact that months and years
+# dont have the same number of days
+df %>%
+  mutate(age = lubridate::time_length(difftime(date2, date1), "years"))
+```
+
 
 Filtering dates
 ```{r}
