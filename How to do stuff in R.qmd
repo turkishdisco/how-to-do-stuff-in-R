@@ -261,9 +261,12 @@ iris %>% janitor::get_dupes()
 
 # across specified columns
 mtcars %>% janitor::get_dupes(mpg, hp)
+
+# with base R
+sum(duplicated(mtcars$disp))
 ```
 
-Retain only distinct rows
+Retain only distinct rows (delete duplicates). This is much faster than `group_by` and `slice_tail`. 
 ```{r}
 mtcars %>% distinct(mpg, hp, .keep_all = T)
 ```
@@ -527,6 +530,18 @@ mtcars %>% filter(gear >= 4 & hp > 109)
 ### Slice
 Use `slice` functions to subset rows.
 
+Recipe: take a random sample of rows in a df:
+```{r}
+# subset a number of rows
+slice_sample(df, n = 50, replace = F)
+
+# subset a proportion of rows
+slice_sample(df, prop = 0.5, replace = F)
+
+# note that sample_n has been superseded by slice_sample
+```
+
+
 Recipe: look for duplicate entries according to certain variables and use `slice_tail` to select the last observation in each grouping. This works by assigning a row number to each row according to its arrangement/grouping, then simply retaining the last row in the group.
 ```{r}
 #| eval: true
@@ -543,7 +558,7 @@ Above we see that if a row is a unique combination of mpg, cyl, disp, and hp the
 mtcars %>%
   select(mpg, cyl, disp, hp) %>%
   group_by(mpg, cyl, disp, hp) %>%
-  slice_tail(n=1) 
+  slice_tail(n = 1) 
 ```
 
 Alternatively, use `slice(1)` in the above to select the **first** row. 
@@ -634,6 +649,10 @@ iris %>%
 df %>%
   filter(if_all(c(gcse_grade_eng_lit_15,
                   gcse_grade_maths_15), ~ . != "Legacy grade"))
+
+# Filter rows where columns are numeric and cell values are above 5
+df %>%
+  filter(if_any(where(is.numeric), ~ . > 5))
 ```
 
 
@@ -665,14 +684,15 @@ df %>%
       T ~ "OK"))
 ```
 
-Note that if you want to supply a formula on the right hand side of case_when, then you need to add `rowwise` in the pipe:
+Note that if you want to supply a formula on the right hand side of case_when, then you need to add `rowwise` in the pipe (but don't forget to ungroup afterwards):
 ```{r}
 df %>%
   rowwise() %>%
   mutate(new_var = case_when(
     nchar(var1) == 14 ~ str_sub(var1, 5, 8),
     T ~ NA_character_
-  ))
+  )) %>%
+  ungroup()
 ```
 
 Remember to turn off `rowwise` if you want to do any aggregation/counting/grouping, by using `ungroup()`. 
@@ -1043,6 +1063,12 @@ str_detect(string, "^[A-Za-z0-9\\s\\-\\'\\(\\)]*$")
 
 # find strings with 5 consecutive digits
 str_detect(string, "\\d{5}")
+
+# extract chunks of 5 numbers in strings
+str_extract(string, "[0-9]{5}")
+
+# find and extract the first whole word
+str_extract("John Smith", "\\w+") # gives: "John"
 ```
 
 Anchors
@@ -1170,9 +1196,6 @@ runif(5, min = 0, max = 100)
 
 # Alternative method using sample()
 sample(x = 1:100, size = 3, replace = F)
-
-# Sample in tidyverse
-sample_n(df, size = 60, replace = F) # random sample of 60 rows from df
 
 # Random normal distribution  
 rnorm(4, mean = 50, sd = 10)
@@ -1599,11 +1622,14 @@ df = data.frame(
 df %>%
   gt() %>%
   # example 1 - use a readymade palette from RColorBrewer
+  # note that you can also specify columns = everything() or columns = is.numeric,
   data_color( 
     columns = c(var_a), 
+    rows = everything(), # or try 1:16 for row indices
+    direction = "row",
     colors = scales::col_numeric( 
-      palette = "PuOr",
-      domain = c(0, 15)),
+      palette = "PuOr",   # or: c("blue", "red")
+      domain = c(0, 15)), # leave NULL if you want to use the full range of data
     apply_to = "fill"
     ) %>%
   # example 2 - use a custom palette
@@ -1942,6 +1968,15 @@ df %>% mutate(across(contains("_lag"), ~ dplyr::lag(.x, n = 1, default = NA)))
 
 # recipe to create new column which counts whether the number of distinct values in a column is above 5
 df %>% mutate(five_distinct = ifelse(n_distinct(upn) >=5, 1, 0))
+```
+
+## Encoding
+```{r}
+# example of how to deal with HTML character entity encoding, e.g. when you have things like &#211;rla (Orla)
+
+# use xml2 to fix this:
+df %>%
+  mutate(given_name_s = xml2::xml_text(read_html(paste0("<p>", given_name_s, "</p>"))))
 ```
 
 
