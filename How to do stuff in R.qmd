@@ -110,6 +110,8 @@ df = readr::read_csv("myFile.csv", na = c(""))
 df = readr::read_delim("myFile.txt", delim = "|", na = c(""))
 
 df = readxl::read_excel("myFile.xlsx", sheet = 1, na = c(""))
+# note: if this throws an error about "cannot open zip file", it's because you need to close the file
+# on your desktop first.
 ```
 
 Combine with `janitor::clean_names()`
@@ -198,6 +200,32 @@ df = odbc::dbGetQuery(
 )
 ```
 
+It's also possible to write a SQL query and pass this as a string:
+```{r}
+query = paste0(
+  "
+  SELECT 
+  
+  PupilMatchingRefAnonymous AS pmr,
+  max(urn) as urn,
+  max(PTSBIOLG) as PTSBIOLG, 
+  max(PTSCHEMG) as PTSCHEMG, 
+  max(PTSCOMPG) as PTSCOMPG, 
+  max(APCOMBSCI91) as APCOMBSCI91,
+  max(PTSPHYG) as PTSPHYG,
+  max(NFTYPE) as NFTYPE
+  
+  FROM [PDR].[Tier0].[KS4_Pupil2_MasterView]
+  WHERE
+  AcademicYear = 202122
+  AND [VERSION] = 'F'
+  "
+)
+
+# and then collect this
+df <- collect(tbl(con, sql(KS4_query)))
+```
+
 
 ## Data validation
 ### Missing values
@@ -269,6 +297,16 @@ sum(duplicated(mtcars$disp))
 Retain only distinct rows (delete duplicates). This is much faster than `group_by` and `slice_tail`. 
 ```{r}
 mtcars %>% distinct(mpg, hp, .keep_all = T)
+
+# another option is to use first()
+df %>% summarise(across(everything(), ~ first(.x))) # also available: last() and nth(n = 3)
+```
+
+Sometimes you get duplicate rows when you perform joins because the rows aren't actually distinct. This can be because some cells have missing data and others don't, so R sees them as different. In this case, you can use the code below to retain only the rows that have the least missing data.
+```{r}
+df %>%
+  arrange(rowSums(is.na(.))) %>%
+  distinct(unique_ref, .keep_all = T)
 ```
 
 
@@ -277,8 +315,7 @@ mtcars %>% distinct(mpg, hp, .keep_all = T)
 `validate` package
 ```{r}
 # example from James Tierney
-extract_rules <- 
-  validate::validator(
+extract_rules <- validate::validator(
     # Each row must be unique in representing the teaching hours allocated to one subject 
     # in one year group for one teacher at one school
     is_unique(census_year, staff_matching_reference, la_estab, subject_description_sfr, year_group), #1
@@ -715,8 +752,10 @@ df %>% mutate(across(starts_with("c_", "y_"), ~as.factor(.x))) # also as.numeric
 # round all numeric columns to 0 decimal places. You must now use an anonymous function to do this:
 # where before across(a:b, mean), 
 # now use across(a:b, \(x) mean(x))
-iris %>%
-  mutate(across(where(is.numeric), \(x) round(x, 0)))
+iris %>%  mutate(across(where(is.numeric), \(x) round(x, 0)))
+
+# derive a flag across cols 2 to 7 - 1 if cells are non-NA and 0 if they are NA
+df %>% mutate(any_grade = if_else(rowSums(!is.na(across(2:7))) > 0, 1, 0))
 ```
 
 
@@ -1670,11 +1709,14 @@ mpg %>%
     by = class,
     statistic = list(
       all_continuous() ~ "{mean} ({sd})",
-      all_categorical() ~ "{n} / {N} ({p}%)"
+      all_categorical() ~ "{n} / {N} ({p}%)"   # can just have {n} if preferred
     ),
-    digits = all_continuous() ~ 2
-  ) %>%
-  as_gt()
+    digits = all_continuous() ~ 2,
+    missing = "no" # whether to include missing values in separate rows
+  ) %>% 
+  modify_caption("<div style='text-align: left; font-weight: bold;'> Table 1</div>")
+
+# not sure if you actually need %>% as_gt()
 
 
 # add p-values for comparisons
@@ -1707,8 +1749,8 @@ Saving a `gtsummary` object as html or docx:
 ```{r}
 table %>%
   gtsummary::as_flex_table() %>% 
-    # flextable::save_as_html(path = "./figs/2024/desc_stats_t_wave_redacted.html")
-    # flextable::save_as_docx(path = "./figs/2024/desc_stats_t.docx")
+  flextable::save_as_html(path = "./filename.html")
+  # or  flextable::save_as_docx(path = "./filename.docx")
 ```
 
 
@@ -1968,6 +2010,12 @@ df %>% mutate(across(contains("_lag"), ~ dplyr::lag(.x, n = 1, default = NA)))
 
 # recipe to create new column which counts whether the number of distinct values in a column is above 5
 df %>% mutate(five_distinct = ifelse(n_distinct(upn) >=5, 1, 0))
+
+# dplyr count
+mpg %>% count(manufacturer, name = "count", sort = T)
+
+# starwars %>% count(gender, eye_color, .drop = F)
+
 ```
 
 ## Encoding
@@ -2194,8 +2242,15 @@ Alternatively, use `broom` to get tidy model output
 ```{r}
 #| eval: true
 
-broom::tidy(model, confint=T)
 broom::glance(model) # gives r2, AIC/BIC, etc
+
+broom::tidy(model, confint=T, exponentiate = F) # change exponentiate to T to get odds ratios for glms
+
+# nifty little trick to amend rounding
+broom::tidy(model) %>%
+  mutate(across(where(is.numeric), \(x) round(x, 3))) %>%
+	 rename("coefficient" = "estimate")
+
 ```
 
 Other model outputs and diagnostics
