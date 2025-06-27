@@ -139,7 +139,7 @@ df = excel.link::xl.read.file("myFile.xlsx", password = "my_password")
 ```{r}
 # fread()
 df = data.table::fread(
-    input = "path/myFile.xlsx",
+    input = "path/myFile.xlsx",  # doesn't work with xlsx? throws error about zip files.
     header = T,
     sep = "|",  
     na.strings = "",
@@ -184,46 +184,72 @@ my_df = my_tbl %>%
   collect()
 
 
-# Older method I used:
+# Use SQL directly
 # Read in entire table
 df = odbc::dbGetQuery(
-  ILR_con,
+  con = ILR_con,
   "SELECT * 
   FROM table_name")
 
 # Read in selected columns with filtering (requires SQL commands)
 df = odbc::dbGetQuery(
-  con,
+  con = con,
   "SELECT [var1], [var2], [var3]
   FROM [database].[table]
   WHERE var4 >= 2 AND var7 <= 10"
 )
-```
 
-It's also possible to write a SQL query and pass this as a string:
-```{r}
-query = paste0(
-  "
+# or write the query and then read in separately:
+ks4_query = paste0("
+SELECT *
+FROM (
+  SELECT
+    PupilMatchingRefAnonymous as PMR_ks4_p2old,
+    FORENAMES,
+    UPPER(SURNAME) as SURNAME,
+    DOB,
+    AcademicYear as AY_ks4_p2old, 
+    URN as URN_ks4_p2old,
+    ENT1EMFLPTQEE,
+    PTSTNEWEPTQEE,
+    ROW_NUMBER() OVER (
+      PARTITION BY PupilMatchingRefAnonymous
+      ORDER BY PTSTNEWEPTQEE DESC
+    ) AS row_n
+  FROM [PDR].[Tier", mytier, "].[KS4_Pupil2_MasterView_OLD]
+  WHERE ACTYRGRP = '11'
+    AND VERSION = 'F'
+    AND AcademicYear = '201415'
+) AS ranked
+WHERE row_n = 1")
+
+ks4_data = collect(tbl(pdr_con, sql(ks4_query)))
+
+
+# Example of doing a join within SQL
+ks4_subject_mapping <- dbGetQuery(con = pdr_con,
+"SELECT 
+result.PupilMatchingRefAnonymous, 
+result.GRADE, 
+result.POINTS, 
+result.MAPPING,
+subject.DESCRIPTION
+FROM (
   SELECT 
-  
-  PupilMatchingRefAnonymous AS pmr,
-  max(urn) as urn,
-  max(PTSBIOLG) as PTSBIOLG, 
-  max(PTSCHEMG) as PTSCHEMG, 
-  max(PTSCOMPG) as PTSCOMPG, 
-  max(APCOMBSCI91) as APCOMBSCI91,
-  max(PTSPHYG) as PTSPHYG,
-  max(NFTYPE) as NFTYPE
-  
-  FROM [PDR].[Tier0].[KS4_Pupil2_MasterView]
-  WHERE
-  AcademicYear = 202122
-  AND [VERSION] = 'F'
-  "
+  PupilMatchingRefAnonymous, 
+  GRADE, 
+  POINTS, 
+  POINTSALL, 
+  MAPPING
+  FROM [Tier0].[KS4_Results_MasterView]
+  WHERE PupilMatchingRefAnonymous = 'CCF85EC135DEB8FCCA'
+) AS result
+LEFT JOIN (
+  SELECT DISTINCT DISCCODE, DESCRIPTION
+  FROM [Tier0].[Disc_T5_DiscDescriptions]
+) AS subject
+ON result.MAPPING = subject.DISCCODE;"
 )
-
-# and then collect this
-df <- collect(tbl(con, sql(KS4_query)))
 ```
 
 
@@ -299,7 +325,9 @@ Retain only distinct rows (delete duplicates). This is much faster than `group_b
 mtcars %>% distinct(mpg, hp, .keep_all = T)
 
 # another option is to use first()
-df %>% summarise(across(everything(), ~ first(.x))) # also available: last() and nth(n = 3)
+df %>% 
+  group_by(var1, var2, var3) %>%
+  summarise(across(everything(), ~ first(.x))) # also available: last() and nth(n = 3)
 ```
 
 Sometimes you get duplicate rows when you perform joins because the rows aren't actually distinct. This can be because some cells have missing data and others don't, so R sees them as different. In this case, you can use the code below to retain only the rows that have the least missing data.
@@ -590,7 +618,8 @@ mtcars %>%
   mutate(id = row_number()) %>% head()
 ```
 
-Above we see that if a row is a unique combination of mpg, cyl, disp, and hp then its id is 1. Otherwise, its id is 2. `slice_tail` will assign grouped row numbers like this and retain only the last row number in a group.
+Above we see that if a row is a unique combination of mpg, cyl, disp, and hp then its id is 1. Otherwise, its id is 2. `slice_tail` will assign grouped row numbers like this and retain only the last row number in a group and thus get rid of duplicate rows. 
+
 ```{r}
 mtcars %>%
   select(mpg, cyl, disp, hp) %>%
@@ -754,8 +783,21 @@ df %>% mutate(across(starts_with("c_", "y_"), ~as.factor(.x))) # also as.numeric
 # now use across(a:b, \(x) mean(x))
 iris %>%  mutate(across(where(is.numeric), \(x) round(x, 0)))
 
-# derive a flag across cols 2 to 7 - 1 if cells are non-NA and 0 if they are NA
+# create a flag across cols 2 to 7 - 1 if cells are non-NA and 0 if they are NA
 df %>% mutate(any_grade = if_else(rowSums(!is.na(across(2:7))) > 0, 1, 0))
+
+# use c_across to calculate figures across multiple columns. It's designed to be used with rowwise().
+df %>%
+  rowwise() %>%
+  mutate(sum = sum(c_across(w:z)),
+         sd = sd(c_across(w:z)))
+
+
+# create a flag to indicate whether values in a set of columns are identical
+df %>%
+  rowwise() %>%
+  mutate(equal = all(c_across(starts_with("PupilM")) == first(c_across(starts_with("PupilM"))))) %>%
+  ungroup()
 ```
 
 
@@ -984,6 +1026,9 @@ starwars %>%
 
 # search for multiple patterns in a string
 df %>% filter(str_detect(cheating_check, "reduced|approp|missing"))
+
+# search for rows containing any of a list of characters
+df %>% filter(str_detect(col1, "[Ábcdêãçoàúü¡“&#;]"))
 
 # use for summing
 sum(str_detect(cheating_tab$cheating_check, "reduced|populated") > 0)
@@ -1558,7 +1603,7 @@ my_func = function(df, subject){
 
 # To convert factor to numeric. If you just use as.numeric, this will use the factor levels, not the
 # "number" that you see in the vector.
-df %>% mutate(my_fac = as.numeric(levels(my_fac)[my_fac])
+df %>% mutate(my_fac = as.numeric(levels(my_fac)[my_fac]))
 ```
 
 # Text analysis
@@ -1792,7 +1837,7 @@ To reference this use an at-symbol as a link:
 
 ### URLs
 ```{r}
-See the following [page](www.insert-url-here.com). 
+# See the following [page](www.insert-url-here.com). 
 ```
 
 ### Figure options
@@ -2019,6 +2064,17 @@ mpg %>% count(manufacturer, name = "count", sort = T)
 ```
 
 ## Encoding
+Note that ASCII encoding was designed to cope with 128 commonly used characters in English, not other languages. Unicode is a standardised system for representing all languages but it's not a form of encoding. UTF-8 is one way to encode unicode characters. 
+
+R uses the `iconv` library to translate between encodings.
+```{r}
+#| eval: true
+utf8 <- "\u00fb"  # 'û'
+utf8
+iconv(utf8, to = "latin1")
+```
+
+
 ```{r}
 # example of how to deal with HTML character entity encoding, e.g. when you have things like &#211;rla (Orla)
 
@@ -2236,6 +2292,9 @@ model = lm(mpg ~ wt * cyl + gear, data = mtcars)
 
 # model output
 summary(model)
+
+# for logistic regression
+model = glm(Survived ~ Pclass, data = titanic::titanic_train, family = binomial(link = "logit"))
 ```
 
 Alternatively, use `broom` to get tidy model output
@@ -2250,8 +2309,30 @@ broom::tidy(model, confint=T, exponentiate = F) # change exponentiate to T to ge
 broom::tidy(model) %>%
   mutate(across(where(is.numeric), \(x) round(x, 3))) %>%
 	 rename("coefficient" = "estimate")
+```
+
+Another option is to use `gtsummary`
+```{r}
+
+m = glm(Survived ~ Pclass + Sex + Age, data = titanic::titanic_train, family = binomial(link = "logit"))
+
+# note:
+# change show_single_row = c("Sex") to collapse this to a single row
+
+m %>%
+  gtsummary::tbl_regression(
+              exponentiate = T,
+              pvalue_fun = label_style_pvalue(digits = 3),
+              show_single_row = NULL) %>%
+  bold_p(t = 0.05) %>%
+  bold_labels() %>%
+  add_vif() %>%
+  add_nevent() %>%
+  add_glance_source_note()
+
 
 ```
+
 
 Other model outputs and diagnostics
 ```{r}
