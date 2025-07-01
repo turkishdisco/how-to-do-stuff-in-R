@@ -1666,6 +1666,12 @@ gt() %>% fmt_number(
   columns = c('n.16', "n.17", "n"),
   sep_mark = ',', decimals = 0) 
 
+# replace NA values
+gt() %>%
+  sub_missing(columns = everything(),
+              rows = everything(),
+              missing_text = "")
+
 # format percent on certain cols and rows
 gt() %>%
   fmt_percent(columns = c(2,3), 
