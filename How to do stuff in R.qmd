@@ -1657,6 +1657,7 @@ df %>%
       columns = c(`2020`),
       rows = c(2,3))) %>%
   opt_stylize(style = 3) %>%  # styles 1-6
+  opt_vertical_padding(scale = 0.5) %>% # to control row padding (from 0-1)
   tab_footnote("Source: World Bank")
 ```
 
