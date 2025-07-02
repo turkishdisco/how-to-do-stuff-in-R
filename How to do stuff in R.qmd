@@ -792,6 +792,12 @@ df %>%
   mutate(sum = sum(c_across(w:z)),
          sd = sd(c_across(w:z)))
 
+# NOTE! if you're using named columns, you need to wrap these in c():
+df %>%
+  rowwise() %>%
+  mutate(mfl_count = sum(c_across(c(french, spanish, german)))) %>%
+  ungroup()
+
 
 # create a flag to indicate whether values in a set of columns are identical
 df %>%
