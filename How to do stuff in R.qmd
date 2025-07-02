@@ -806,6 +806,11 @@ df %>%
   ungroup()
 ```
 
+### Creating quantiles
+```{r}
+df %>% 
+  mutate(var_quant = dplyr::ntile(var, 4))
+```
 
 
 ## Changing variables
