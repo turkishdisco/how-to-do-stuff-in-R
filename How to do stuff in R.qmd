@@ -158,6 +158,13 @@ df = fst::read_fst('myFile.fst')
 ```{r}
 # First establish a connection 
 # Example 1:
+con = dbConnect(odbc::odbc(), 
+                Driver = "SQL Server", 
+                Server = "3DCPRI-PDB16\\ACSQLS", 
+                Database = "MatchedAdminSQL",
+                Trusted_Connection = "yes")
+
+# Example 2:
 con = dbConnect(odbc::odbc(),
                 Driver = "ODBC Driver 17 for SQL Server",
                 Server = "mtceepr.database.windows.net",
@@ -165,23 +172,40 @@ con = dbConnect(odbc::odbc(),
                 Authentication = "ActiveDirectoryIntegrated",
                 Port = 49554)
 
-# Example 2:
-con = dbConnect(odbc::odbc(), 
-                Driver = "SQL Server", 
-                Server = "3DCPRI-PDB16\\ACSQLS", 
-                Database = "MatchedAdminSQL",
-                Trusted_Connection = "yes")
+# get Tier
+mytier = if_else(length(dbListTables(pdr_con, "PDR", "Tier0")) > 0,0,1)
 
-# Then load in data:
-# use dplyr for more efficiency
-# first step:
-my_tbl = tbl(con, sql("select * FROM [PDR].[Tier1].[Phonics_MasterView]") )
+# connect to the appropriate table, and paste the Tier
+hesa_mv = tbl(pdr_con, in_schema(sql(paste0("PDR.Tier", mytier)), "vw_HESA_MasterView") )
 
-# second step:
-my_df = my_tbl %>% 
-  filter(AcademicYear %in% c("202223"), Version=="F") %>% 
-  select(AcademicYear, PupilMatchingRefAnonymous) %>% 
+# read in data required
+hesa_course_raw = hesa_mv %>%
+  filter(PupilMatchingRefAnonymous %in% hesa_pmr$hesa_PMR) %>%
+  select(PupilMatchingRefAnonymous,
+         XPQUAL01,
+         XCLASS01) %>%
+  mutate(COMDATE = as.POSIXct(COMDATE),
+         PupilMatchingRefAnonymous = toupper(PupilMatchingRefAnonymous)) %>%
+  rename(hesa_PMR = PupilMatchingRefAnonymous,
+         hesa_qual = XPQUAL01,
+         hesa_class = XCLASS01) %>%
+  collect() 
+
+# to check the underlying sql code, you can remove collect() and pipe the above into:
+# %>% show_query()
+
+# if you are reading in multiple times with the same variables, you can save
+# these in a vector and use all_of:
+phon_vars = c("AcademicYear", "PupilMatchingRefAnonymous", "LAESTAB", "PHONICSMARK")
+
+phonics_c1_y1_2122 = phonics %>%
+  filter(Version=="F" & NCYEARACTUAL %in% c("1") & is.na(LINKID)) %>% 
+  select(all_of(phon_vars)) %>% 
   collect()
+
+
+# alternative method to read in all data from a table:
+my_tbl = tbl(con, sql("select * FROM [PDR].[Tier1].[Phonics_MasterView]") )
 
 
 # Use SQL directly
@@ -1659,6 +1683,9 @@ df %>%
   opt_stylize(style = 3) %>%  # styles 1-6
   opt_vertical_padding(scale = 0.5) %>% # to control row padding (from 0-1)
   tab_footnote("Source: World Bank")
+
+# note: to have a linebreak in the footnote, wrap the caption in html() and use <br>, e.g.
+# tab_footnote(html("this is my long <br> caption that won't fit))
 ```
 
 ### Other `gt` functions
@@ -1823,7 +1850,7 @@ Below is a template for a Quarto YAML. Note: include `standalone` and `embed-res
 ```{r}
 ---
 title: "My Title"
-date: last-modified
+date: now
 date-format: "[Last updated:] DD/MM/YYYY HH:mm"
 format:
   html:

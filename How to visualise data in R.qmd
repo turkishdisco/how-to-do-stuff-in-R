@@ -503,6 +503,40 @@ networkD3::sankeyNetwork(Links = links,
               NodeID = "name", 
               fontSize = 12, 
               fontFamily = "sans-serif")
+
+# function
+sankey_function = function(var1, var2, lab1, lab2, lab3, lab4){
+  
+  tab = table(var1, var2)
+  
+  links = data.frame(
+    Var1 = c(lab1, lab2, lab1, lab2),
+    Var2 = c(lab3, lab3, lab4, lab4),
+    Freq = c(403, 1860, 287, 5692)
+  )
+  
+  colnames(links) <- c("source", "target", "value")
+  
+  nodes <- data.frame(name = as.factor(c(lab1, lab2, lab3, lab4)))
+  
+  links$source <- match(links$source, nodes$name) - 1
+  links$target <- match(links$target, nodes$name) - 1
+  
+  # create Sankey diagram
+  networkD3::sankeyNetwork(Links = links, 
+                           Nodes = nodes, 
+                           Source = "source",
+                           Target = "target", 
+                           Value = "value", 
+                           NodeID = "name", 
+                           fontSize = 12, 
+                           fontFamily = "sans-serif")
+}
+
+
+sankey_function(var1 = ela_final$ks4_mfl, var2 = ela_final$ks5_mfl_any,
+                lab1 = "ks4_mfl_no", lab2 = "ks4_mfl_yes",
+                lab3 = "ks5_mfl_no", lab4 = "ks5_mfl_yes")
 ```
 
 
@@ -642,9 +676,33 @@ palmerpenguins::penguins %>%
   geom_text(
     aes(label = n, vjust = -0.5),
     size = 3.5)
+```
 
-# if you'd only like to display text for certain conditions:
+It's also possible to display text for certain conditions.
+```{r}
+#| eval: false
 # p + geom_text(aes(label = ifelse(condition == "con", paste0(round(diff_pc,1), "%"), ""), vjust = -0.5),size = 3.5)
+
+# a more common strategy is to calculate bar counts beforehand and then plug these in later.
+bar_data = ela_final %>%
+  filter(!is.na(status)) %>%
+  # reorder the factor so that the order of filled bars is descending (first 
+  # on top, last at bottom)
+  mutate(status = factor(status, levels = c("Deceased", "Cancelled", "Rejected",
+                                            "Waiting list", "Matching", 
+                                            "Applicant withdrawn", "Allocated"))) %>%
+  count(AY, status)
+
+ggplot(bar_data, aes(x = AY, y = n, fill = status)) +
+  geom_bar(stat = "identity") +
+  geom_text(
+    # just show counts from "Allocated" status
+    data = bar_data %>% filter(status == "Allocated"),
+    aes(x = AY, y = n, label = n),
+    position = position_stack(vjust = 0.5),
+    color = "black",
+    size = 3.5
+  )
 ```
 
 
