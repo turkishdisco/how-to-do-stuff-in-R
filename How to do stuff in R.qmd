@@ -1788,6 +1788,65 @@ df %>%
 # na_color). 
 ```
 
+### Creating a large gt table with `rbind`
+Sometimes you need a large table with lots of different categories. It isn't always feasible to create this with a single long-format table, so this solution involves using rbind to collate smaller tables and then format the result nicely.
+```{r}
+
+# for first 2 columns (pass/fail)
+pass_fail = rbind(
+  df %>%
+    tabyl(c_summer_born, psc_pass, show_na = F) %>%
+    adorn_percentages("col") %>%
+    adorn_pct_formatting() %>%
+    adorn_ns(position = "rear") %>%
+    rename(var = c_summer_born),
+  
+  df %>%
+    tabyl(SEX, psc_pass, show_na = F) %>%
+    adorn_percentages("col") %>%
+    adorn_pct_formatting() %>%
+    adorn_ns(position = "rear") %>%
+    rename(var = SEX)
+)
+# for next couple of columns (to be joined onto the top table)
+psc_dist = rbind(
+  df %>%
+    filter(psc_pass == "Fail") %>%
+    group_by(c_summer_born) %>%
+    summarise(mean = mean(PHONICSMARK, na.rm=T),
+              within5 = sum(PHONICSMARK >= 27, na.rm=T) / n(),
+              within3 = sum(PHONICSMARK >= 29, na.rm=T) / n(),
+              within1 = sum(PHONICSMARK == 31, na.rm=T) / n()) %>%
+    rename(var = c_summer_born),
+  
+  df %>%
+    filter(psc_pass == "Fail") %>%
+    group_by(SEX) %>%
+    summarise(mean = mean(PHONICSMARK, na.rm=T),
+              within5 = sum(PHONICSMARK >= 27, na.rm=T) / n(),
+              within3 = sum(PHONICSMARK >= 29, na.rm=T) / n(),
+              within1 = sum(PHONICSMARK == 31, na.rm=T) / n()) %>%
+    rename(var = SEX)
+)
+
+pass_fail %>% left_join(psc_dist, by = "var") %>%
+  gt(rowname_col = "var") %>%
+  tab_options(table.font.size = 15,
+              table.font.names = "Arial") %>%
+  opt_stylize(style = 3) %>%
+  tab_row_group(label = "Summer born", rows = 1:2) %>%
+  tab_row_group(label = "Gender", rows = 3:4) %>%
+  row_group_order(c("Summer born", "Gender")) %>%
+  tab_spanner(label = "All pupils", columns = c(2:3)) %>%
+  tab_spanner(label = "Of those failing", columns = c(4:7)) %>%
+  fmt_number(4, decimals = 2) %>%
+  fmt_percent(columns = c(5:7), decimals = 2) %>%
+  cols_align("center") %>%
+  tab_footnote("Note: 2023/24 data")
+```
+
+
+
 ## `gtsummary`
 `gtsummary` builds on `gt` and is used to summarise dataframes, regession models, and more. Its main function is `tbl_summary`. 
 ```{r}
