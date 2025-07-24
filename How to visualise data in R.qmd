@@ -1601,6 +1601,38 @@ pdf("histograms_all.pdf")
 cowplot::plot_grid(plotlist = covariate_plots)
 dev.off()
 ```
+  
+Another way to achieve this is by converting variable names to symbols. The function below creates dodged bar plots (with the same y-axis value each time), and then the map function iterates through a list of grouping variables (`vars`) such that each time a new plot is produced with the next grouping factor in the vector. The function uses tidy evaluation (the unquote or 'bang-bang' character `!!`)
+```{r}
+#| eval: false
+bar_fun = function(data, var1, var2) {
+  
+  # convert grouping factors into symbols first
+  var1 = sym(var1)
+  var2 = sym(var2)
+  
+  data %>%
+    filter(psc_pass == "Fail") %>%
+    # the below effectively becomes group_by(c_summer_born, SEX)
+    group_by(!!var1, !!var2) %>%
+    summarise(PHONICSMARK = round(mean(PHONICSMARK, na.rm = TRUE), 1), .groups = "drop") %>%
+    ggplot(aes(x = !!var1, y = PHONICSMARK, fill = !!var2)) +
+    geom_bar(stat = "identity", position = position_dodge()) +
+    geom_text(aes(label = PHONICSMARK), 
+              vjust = 1.2, 
+              position = position_dodge(width = 1)) +
+    labs(title = paste("By", as_string(var2))) +
+    theme_classic() +
+    theme(axis.title = element_blank())
+}
+
+vars = c("SEX", "c_disad", "c_any_Sen", "c_white_british", "c_eal")
+  
+plots = purrr::map(vars, ~ bar_fun(data = ph_cen2, var1 = "c_summer_born", var2 = .x))
+
+patchworK::wrap_plots(plots, ncol = 3)
+
+```
 
 This slightly different recipe takes an outcome variable and grouping factor to produce a histogram. It uses `enquo` to extract the number of levels in the specified grouping factor which it then supplies to the `nrow` argument of `facet_wrap`.
 ```{r}
