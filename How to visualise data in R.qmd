@@ -1470,7 +1470,7 @@ ggplot(mtcars, aes(x = wt, y = mpg)) + geom_point() +
 
 # Combining and saving plots
 ## Facetting
-To facet by a single variable, use `facet_wrap`. Add `scales = "free"` if axes are different for each group. NOTE: the old way was `~ species`, but `vars` allows you to specify several groupings, e.g. `vars(species, sex)`. 
+To facet by a single variable, use `facet_wrap`. Add `scales = "free"` if axes are different for each group (or try `free_x` or `free_y`). NOTE: the old way was `~ species`, but `vars` allows you to specify several groupings, e.g. `vars(species, sex)`. 
 ```{r}
 #| fig-height: 5
 #| fig-width: 6

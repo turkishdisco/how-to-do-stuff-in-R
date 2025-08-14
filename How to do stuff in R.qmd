@@ -1773,6 +1773,14 @@ gt() %>%
              direction = "column",
              palette = colorRampPalette(c("lightblue", "darkblue"))(100))
 
+# to fill cells with colour
+gt() %>%
+tab_style(
+    style = cell_fill(color = "lightblue"),
+    locations = cells_body(
+      columns = col_name,
+      rows = col_name2 <= 2019))
+
 # save a gt table object (assuming it's called 'tab')
 gtsave(tab, "tab.rtf") # for word format
 gtsave(tab, "tab.png")
