@@ -615,6 +615,15 @@ Note that filtering is faster on ungrouped data.
 mtcars %>% filter(gear >= 4 & hp > 109)
 ```
 
+To select odd or even rows
+```{r}
+# even rows
+df %>% filter(row_number() %% 2 == 0)
+
+# odd rows
+df %>% filter(row_number() %% 2 == 1)
+```
+
 
 ### Slice
 Use `slice` functions to subset rows.
@@ -759,12 +768,16 @@ starwars %>%
   select(name, mass, height, size_group) %>% head()
 ```
 
-Here, `T` effectively reads as "else", i.e. to specify what happens if everything evaluates to FALSE or NA. To supply an NA value instead, you can use one of the following (making sure to align with the data type in the other labels) e.g.:
+Note that `case_when` needs to operate on the same class of vectors, e.g. character-only, numeric-only, etc. It's not possible to combine values of e.g. `~ 50` (numeric) and `~ "large"` (character). 
+
+`T` effectively reads as "else", i.e. to specify what happens if everything evaluates to FALSE or NA. In this case, rows will receive `NA`. To supply a specific NA value instead, you can use one of the following (making sure to align with the data type in the other labels) e.g.:
 
 - `T ~ NA_character_`
 - `T ~ NA_integer_`
+- `T ~ NA_real_`
+- `T ~ NA_date_`
 
-Note that `case_when` needs to operate on the same class of vectors, e.g. character-only, numeric-only, etc. It's not possible to combine values of e.g. `~ 50` and `~ "large"`. 
+If a condition (e.g. `mass > 100 | height > 200`) evaluates to `TRUE`, the other conditions will NOT be checked. 
 
 Another example using `if_any` (this says: mark an error if any of TestMark1A to 3A are "0"):
 ```{r}
@@ -786,6 +799,17 @@ df %>%
 ```
 
 Remember to turn off `rowwise` if you want to do any aggregation/counting/grouping, by using `ungroup()`. 
+
+`case_match` is used for more simple recoding, and requires a vector of character values on the left-hand side.
+```{r}
+#| eval: false
+
+df %>%
+  mutate(group = case_match(
+    group, "ctl" ~ "Control", 
+    "exp" ~ "Experimental"))
+```
+
 
 ### Cross-column operations
 There are many examples of the `across` function in this guide. The examples below use `across()` or `purrr:pmap`.
@@ -900,6 +924,20 @@ df %>%
                                   "0" = "NoFSM",
                                   "1" = "FSM"))
 ```
+
+If you are doing a lot of recoding repeatedly, you can save the mappings in a separate object and use the triple bang operator (`!!!`):
+```{r}
+#| eval: false
+
+group_recode = c(
+  "ctrl" = "Control",
+  "exp" = "Experimental"
+)
+
+df %>%
+  mutate(group = recode(group, !!!group_recode))
+```
+
 
 For reference, this is the way to recode in Base R:
 ```{r}
@@ -1331,6 +1369,18 @@ Convert character to date
 #| eval: true
 my_date = "08/10/2021"
 as.Date(my_date, "%d/%m/%Y")
+
+# for dates in POSIXct format:
+my_date = "Sep 29 2014 12:00AM"
+as.POSIXct(my_date, format = "%b %d %Y %I:%M%p")
+
+# note:
+# %b — Abbreviated month name (e.g., "Sep")
+# %d — Day of the month (e.g., "29")
+# %Y — 4-digit year (e.g., "2014")
+# %I — Hour (01–12) in 12-hour format
+# %M — Minute (00–59)
+# %p — AM/PM indicator
 ```
 
 Often when you read in Excel data the dates get messed up. Usually these will get converted to character: one good solution is to convert them to numeric first, and then to a date:
