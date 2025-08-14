@@ -512,7 +512,7 @@ sankey_function = function(var1, var2, lab1, lab2, lab3, lab4){
   links = data.frame(
     Var1 = c(lab1, lab2, lab1, lab2),
     Var2 = c(lab3, lab3, lab4, lab4),
-    Freq = c(403, 1860, 287, 5692)
+    Freq = c(tab[1,1], tab[2,1], tab[1,2], tab[2,2])
   )
   
   colnames(links) <- c("source", "target", "value")
