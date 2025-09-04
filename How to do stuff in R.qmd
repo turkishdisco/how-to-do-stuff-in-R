@@ -585,6 +585,25 @@ starwars %>%
   select(name, films) %>% head()
 ```
 
+This isn't really a 'separate' problem, but you may have a character vector that you'd like to split into several columns, where each column is a binary value.
+```{r}
+#| eval: true
+
+df = data.frame(
+  id = rep(1:3, each=3),
+  location = c("London", "London", "London", "East", "East", "East", "West", "West", "West"))
+df
+
+# use model.matrix to create dummy columns
+locations = df$location
+helper_df = data.frame(loc = factor(locations))
+
+# Use model.matrix to one-hot encode
+dummy_cols = model.matrix(~ loc - 1, data = helper_df)
+
+cbind(df, dummy_cols)
+```
+
 
 ## Unite
 Recipe: combine the values in two columns
@@ -1749,6 +1768,13 @@ gt() %>% cols_label(old_name = "New name")
 
 # do the same with cols_label:
 gt() %>% cols_label(var1 = md("Long variable name <br/> that needs splitting"))
+
+# make header row bold face (note: color MUST be American spelling to work):
+gt() %>% 
+  tab_style(
+    style = cell_text(weight = "bold", color = "black"),
+    locations = cells_column_labels(everything())
+  )
 
 # format number for specific columns with separator mark and decimals
 gt() %>% fmt_number(
