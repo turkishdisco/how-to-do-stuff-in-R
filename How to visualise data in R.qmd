@@ -479,7 +479,7 @@ This recipe produces an interactive html Sankey chart using the `networkD3` pack
 ```{r}
 #| fig-height: 4
 #| fig-width: 5
-
+#| eval: false
 links = data.frame(
   Var1 = c("Failed_Phonics", "Passed_Phonics", "Failed_Phonics", "Passed_Phonics"),
   Var2 = c("Failed_KS2", "Failed_KS2", "Passed_KS2", "Passed_KS2"),
@@ -664,6 +664,17 @@ p + theme(plot.title = element_text(size = 18))
 
 
 ## Adding text to charts
+If you just want to add static text somewhere on a chart, use this:
+```{r}
+# for plot with numeric axes:
+plot + geom_text(x = 100, y = 100, label = "my label", hjust = 1.2)
+
+# for plot with date on x-axis
+plot + geom_text(x = as.Date("2025-09-01"), y = 100, label = "my label", hjust = 1.2)
+```
+
+
+
 Recipe to add the stat to the top of a bar.
 ```{r}
 #| fig-height: 4
