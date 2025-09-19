@@ -1215,7 +1215,7 @@ countries %>%
   gghighlight(str_detect(Name, "Czech"),
               label_params = list(size = 3),
               label_key = Code,
-              unhighlighted_color = "grey90")
+              unhighlighted_colour = "grey70")
 ```
 
 
@@ -1488,6 +1488,7 @@ ggplot(mtcars, aes(x = wt, y = mpg)) + geom_point() +
 # Dynamic plots
 There may be cases where you want to produce multiple plots with the same geoms and structure but looking at a different outcome variable each time. Here it is more efficient to write a single function and repeat it. This can be made dynamic through use of `{{` and `deparse`:
 ```{r}
+#| eval: false
 la_graph = function(data, outcome){
   
   title = deparse(substitute(outcome))
