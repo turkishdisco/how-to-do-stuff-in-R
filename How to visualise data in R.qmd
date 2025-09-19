@@ -883,6 +883,11 @@ yr_labels = c("2018/19", "2019/20", "2020/21", "2021/22", "2022/23")
 plot + scale_x_continuous(labels = yr_labels)
 ```
 
+Another option is to use an anonymous function to extract the last two digits of the year
+```{r}
+plot + scale_x_continuous(breaks = 2013:2024, labels = function(x) substr(as.character(x), 3, 4))
+```
+
 
 # Themes
 To add a pre-defined theme to a plot: `p + theme_*()`.
@@ -1209,7 +1214,8 @@ countries %>%
   geom_line(aes(colour = Name), linewidth = 0.8) +
   gghighlight(str_detect(Name, "Czech"),
               label_params = list(size = 3),
-              label_key = Code)
+              label_key = Code,
+              unhighlighted_color = "grey90")
 ```
 
 
@@ -1464,7 +1470,7 @@ mpg %>%
 ```
 
 
-Shading
+### Shading
 ```{r}
 #| fig-height: 3
 #| fig-width: 5
@@ -1479,6 +1485,36 @@ ggplot(mtcars, aes(x = wt, y = mpg)) + geom_point() +
 ```
 
 
+# Dynamic plots
+There may be cases where you want to produce multiple plots with the same geoms and structure but looking at a different outcome variable each time. Here it is more efficient to write a single function and repeat it. This can be made dynamic through use of `{{` and `deparse`:
+```{r}
+la_graph = function(data, outcome){
+  
+  title = deparse(substitute(outcome))
+  
+  data %>%
+    ggplot(aes(x = year, y = {{outcome}})) +
+    theme_classic() +
+    geom_line(aes(group = la_name), linewidth = 0.7, colour = "grey90") +
+    stat_summary(fun = mean, geom = "line", aes(group = la_group, colour = la_group),
+                 linewidth = 1) +
+    theme(axis.text.x = element_text(angle=45, hjust = 1),
+          axis.title.x = element_blank(),
+          legend.title = element_blank()) +
+    scale_y_continuous(labels = scales::label_percent(accuracy = 1, scale = 100),
+                       limits = c(0,1)) +
+    scale_x_continuous(breaks = 2013:2024, labels = function(x) substr(as.character(x), 3, 4))  +
+    # invoke title object here
+    ylab(title) +
+    ggtitle(title)
+}
+
+# to run:
+la_graph(dataset, outcome_of_interest)
+```
+
+
+
 # Combining and saving plots
 ## Facetting
 To facet by a single variable, use `facet_wrap`. Add `scales = "free"` if axes are different for each group (or try `free_x` or `free_y`). NOTE: the old way was `~ species`, but `vars` allows you to specify several groupings, e.g. `vars(species, sex)`. 
@@ -1491,6 +1527,9 @@ palmerpenguins::penguins %>%
   facet_wrap(vars(species), 
              nrow = 3,
              scales = "fixed") +
+  # customisation of strips/panels:
+  theme(strip.text = element_text(face = "bold", color = "black", hjust = 0.5, size = 10),
+        strip.background = element_rect(fill = NA, linetype = "solid", color = "black"))
   theme_bw()
 ```
 
