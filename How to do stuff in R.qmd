@@ -531,6 +531,15 @@ us_rent_income %>%
 
 Note that the `id_cols` argument can be used if your pivot results in NAs for one level of a factor. In the above, this would be `GEOID`. 
 
+Also note that if the output results in lists instead of numeric vectors, you need to add this:
+```{r}
+#| eval: false
+
+... %>%
+  unnest(cols = c(...))
+```
+
+
 ### Melt and cast with `data.table`
 ```{r}
 # a more complicated procedure - select columns starting with Q and a number from 1 to 31 and columns ending in 'Sco', and pivot longer by putting these values into columns called QID and Score:
@@ -756,7 +765,7 @@ hierarchy = c("A", "B", "C", "D")
 df %>% mutate(in_hierarchy = if_any(c(TestMark1, TestMark2), ~ . %in% hierarchy))
 ```
 
-You can also use `if_any` with `filter`:
+You can also use `if_any` and `if_all` with `filter`:
 ```{r}
 
 # filter rows where any of Sepal.Width or Petal.Width is bigger than 4. 
@@ -771,6 +780,14 @@ df %>%
 # Filter rows where columns are numeric and cell values are above 5
 df %>%
   filter(if_any(where(is.numeric), ~ . > 5))
+
+# Filter rows where each specified column is not NA, using all_of()
+years <- as.character(2013:2024) # corresponds to col names
+df %>% 
+  filter(if_all(all_of(years), ~ !is.na(.)))
+
+df %>%
+  filter(if_all(starts_with("x"), ~ !is.na(.)))
 ```
 
 
@@ -1710,6 +1727,17 @@ my_func = function(df, subject){
 df %>% mutate(my_fac = as.numeric(levels(my_fac)[my_fac]))
 ```
 
+### Assign ID number by group
+If you have grouped long format data and want to assign a unique ID to each GROUP, use `cur_group_id`:
+```{r}
+#| eval: false
+df %>% 
+  group_by(group) %>%
+  mutate(id = cur_group_id())
+```
+
+
+
 # Text analysis
 ```{r}
 # tidytext package
@@ -1752,6 +1780,9 @@ df %>%
   opt_stylize(style = 3) %>%  # styles 1-6
   opt_vertical_padding(scale = 0.5) %>% # to control row padding (from 0-1)
   tab_footnote("Source: World Bank")
+
+# I like to combine these for better readability:
+# tab_options(table.font.size = 14) %>% opt_vertical_padding(scale = 0.5)
 
 # note: to have a linebreak in the footnote, wrap the caption in html() and use <br>, e.g.
 # tab_footnote(html("this is my long <br> caption that won't fit))
@@ -2238,9 +2269,6 @@ df %>% mutate(across(starts_with("y_"), ~ifelse(.x %in% c("EXS", "GDS"), 1, 0)))
 
 df %>% summarise(across(starts_with(c("c_", "y_")), ~mean(.x, na.rm = T)))
 
-# create a lagged variable
-df %>% mutate(across(contains("_lag"), ~ dplyr::lag(.x, n = 1, default = NA)))
-
 # recipe to create new column which counts whether the number of distinct values in a column is above 5
 df %>% mutate(five_distinct = ifelse(n_distinct(upn) >=5, 1, 0))
 
@@ -2250,6 +2278,19 @@ mpg %>% count(manufacturer, name = "count", sort = T)
 # starwars %>% count(gender, eye_color, .drop = F)
 
 ```
+
+## Lagged variables
+```{r}
+# create a lagged variable, e.g. from one year to the next
+df %>%
+  mutate(change = dplyr::lag(mfl_entries, n = 1, default = NA)) %>%
+  mutate(change_pc = (mfl_entries - change) / change) %>%
+  select(-c(Change))
+
+# create a lagged variable across several columns
+df %>% mutate(across(contains("_lag"), ~ dplyr::lag(.x, n = 1, default = NA)))
+```
+
 
 ## Encoding
 Note that ASCII encoding was designed to cope with 128 commonly used characters in English, not other languages. Unicode is a standardised system for representing all languages but it's not a form of encoding. UTF-8 is one way to encode unicode characters. 
