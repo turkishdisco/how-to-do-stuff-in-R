@@ -182,8 +182,8 @@ hesa_mv = tbl(pdr_con, in_schema(sql(paste0("PDR.Tier", mytier)), "vw_HESA_Maste
 hesa_course_raw = hesa_mv %>%
   filter(PupilMatchingRefAnonymous %in% hesa_pmr$hesa_PMR) %>%
   select(PupilMatchingRefAnonymous,
-         XPQUAL01,
-         XCLASS01) %>%
+         XPQUAL01, XCLASS01) %>%
+  #slice_sample(n=100) %>%
   mutate(COMDATE = as.POSIXct(COMDATE),
          PupilMatchingRefAnonymous = toupper(PupilMatchingRefAnonymous)) %>%
   rename(hesa_PMR = PupilMatchingRefAnonymous,
@@ -905,6 +905,13 @@ iris %>% rename(sepal_length = "Sepal.Length")
 # you can also rename by index
 iris %>% rename("newname" = 1)
 ```
+
+If you want to rename all columns of a dataframe with the name of the object, e.g. "leo_":
+```{r}
+#| eval: false
+names(leo_learners) = paste0("leo_", names(leo_learners) )
+```
+
 
 `rename_with` - replace all ".x" and ".y" created by joining (these become _sc and _agg)
 ```{r}
@@ -1766,6 +1773,8 @@ df %>%
   cols_align("left") %>% 
   tab_row_group(label = "group 1", rows = 1:2) %>%
   tab_row_group(label = "group 2", rows = 3:4) %>%
+  # if you want to display the row group as a column on the left, add
+  # row_group.as_column=T to tab_options
   row_group_order(c("group 1", "group 2")) %>%
   tab_options(table.align='left',
               table.font.size = 14,
@@ -2310,6 +2319,18 @@ iconv(utf8, to = "latin1")
 # use xml2 to fix this:
 df %>%
   mutate(given_name_s = xml2::xml_text(read_html(paste0("<p>", given_name_s, "</p>"))))
+```
+
+## Calculate the mode
+There is no native function for this, so use the custom function below.
+```{r}
+#| eval: true
+mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+mode(c(1,2,3,3,3,3,4,5,6,6,7,8,9))
 ```
 
 

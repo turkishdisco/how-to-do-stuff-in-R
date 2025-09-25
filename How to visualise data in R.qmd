@@ -160,7 +160,7 @@ Adding a line of best fit
 gcookbook::heightweight %>%
   ggplot(aes(x = heightIn, y = weightLb)) +
   geom_point(aes(colour = sex)) +
-  geom_smooth(method = "lm",
+  geom_smooth(method = "lm", # or "loess"
               fullrange = T,
               aes(colour=sex))
 ```
@@ -601,6 +601,23 @@ mpg %>%
                width = .4)
 ```
 
+Plot the interquartile range (1st to 4th quartiles with median):
+```{r}
+# custom function
+median_IQR <- function(x) {
+  data.frame(y = median(x), # Median
+             ymin = quantile(x)[2], # 1st quartile
+             ymax = quantile(x)[4])  # 3rd quartile
+}
+
+mpg %>%
+  ggplot(aes(x = class, y = hwy)) +
+  stat_summary(geom = "linerange",
+               fun.data = median_IQR, 
+               linewidth = 1.5) +
+  stat_summary(fun = median, geom = "point", colour = "red", size = 2.5)
+```
+
 
 Add confidence intervals (requires the `Hmisc` package):
 ```{r}
@@ -750,8 +767,12 @@ p + theme(axis.ticks.x = element_blank())
 p + scale_y_continuous(labels = scales::label_percent(accuracy = 1, scale = 100), breaks = (0:10)/10)
 
 # currency suffix
-p + scale_y_continuous(labels = scales::label_dollar(prefix = "£"))
+p + scale_y_continuous(labels = scales::label_dollar(prefix = "£"),
+                       breaks = seq(0, 100, by = 25))
 # can also specify suffix, big.mark = ",", and decimal.mark = "."
+
+# if you just want to display all breaks without listing them:
+p + scale_x_continuous(n.breaks = 17)
 
 # thousands separator
 p + scale_y_continuous(labels = label_comma(big.mark = ","))
@@ -1221,6 +1242,7 @@ countries %>%
 
 ## Other colour scale options
 ```{r}
+#| eval: true
 #| fig-height: 3
 #| fig-width: 5
 
@@ -1230,9 +1252,12 @@ p = gcookbook::heightweight %>%
   ggplot(aes(x = heightIn, y = weightLb, colour = heightIn)) +
   geom_point(size = 2)
 
-p + #scale_colour_continuous() +
+# note: scale_colour_continuous works within R but causes a fatal error when
+# knitting to html, so replace with scale_colour_gradient
+
+p + scale_colour_gradient(na.value = "grey50") +
   theme_void() +
-  ggtitle("scale_colour_continuous")
+  ggtitle("scale_colour_gradient (default)")
 
 p + scale_colour_gradient(low = "white", high = "red", na.value = "black") +
   theme_void() +
@@ -1242,7 +1267,8 @@ p + scale_colour_gradient(low = "white", high = "red", na.value = "black") +
 # the dataframe. Of course you don't have to use the median as the 'midpoint' here. 
 p + scale_colour_gradient2(low = "blue", mid = "white", high = "red",
   midpoint = median(gcookbook::heightweight$heightIn)) +
-  theme_void()
+  theme_void() +
+  ggtitle("scale_colour_gradient2")
 
 # colour_gradientn allows you to specify your own set of colours for a whole spectrum.
 # note: if you don't specify a vector of values, the colours will be evenly positioned along
@@ -1253,7 +1279,19 @@ p + scale_colour_gradientn(colours = c("red","yellow","green","lightblue","darkb
                                     values = c(1, 0.9, 0.8, 0.7, 0)) +
   theme_void() +
   ggtitle("scale_colour_gradientn")
+
 ```
+
+NOTE! If you want to map to integers like 18, 21, 22, 23, 39 then you need to rescale these from 0 to 1, which the `scales` package can do for you:
+```{r}
+#| eval: false
+
+p + scale_colour_gradientn(colours = c("red","yellow","green","lightblue","darkblue"),
+                                    values = scales::rescale(c(39, 23, 22, 21, 18), to = c(0,1)),
+                                    name = "Legend name") +
+  theme_void() 
+```
+
 
 ## Brewer palettes
 `scale_*_brewer` to use predefined palettes. See a list of available palettes [here](https://jmsallan.netlify.app/blog/the-brewer-palettes/). 
@@ -1491,6 +1529,7 @@ There may be cases where you want to produce multiple plots with the same geoms 
 #| eval: false
 la_graph = function(data, outcome){
   
+  # extract title passed to function for using in ggtitle later
   title = deparse(substitute(outcome))
   
   data %>%
