@@ -8,7 +8,7 @@ format:
     embed-resources: true
     toc: true
     toc-depth: 3
-    toc-expand: 1
+    toc-expand: 2
     number-sections: true
     toc-location: left
     df-print: kable
@@ -100,6 +100,13 @@ missing_df <- as.data.frame(old_packages[
 # install missing packages
 install.packages(missing_df$Package, Ncpus = 3)
 ```
+
+To find out which version of a particular package is installed, either call `sessionInfo()` or this:
+```{r}
+#| eval: true
+packageVersion("dplyr")
+```
+
 
 # Read data
 ## Read from local storage
@@ -1797,6 +1804,38 @@ df %>%
 # tab_footnote(html("this is my long <br> caption that won't fit))
 ```
 
+Styles include:
+```{r}
+df = nycflights13::planes %>%
+  filter(type != "Rotorcraft") %>%
+  tabyl(engine, type) 
+
+df %>% gt() %>%
+  opt_stylize(style = 1) %>%
+  tab_header("Style 1")
+
+df %>% gt() %>%
+  opt_stylize(style = 2) %>%
+  tab_header("Style 2")
+
+df %>% gt() %>%
+  opt_stylize(style = 3) %>%
+  tab_header("Style 3")
+
+df %>% gt() %>%
+  opt_stylize(style = 4) %>%
+  tab_header("Style 4")
+
+df %>% gt() %>%
+  opt_stylize(style = 5) %>%
+  tab_header("Style 5")
+
+df %>% gt() %>%
+  opt_stylize(style = 6) %>%
+  tab_header("Style 6")
+```
+
+
 ### Other `gt` functions
 ```{r}
 # to wrap column or header names when they're too long - use md() and <br/>
@@ -2331,6 +2370,14 @@ mode <- function(x) {
 }
 
 mode(c(1,2,3,3,3,3,4,5,6,6,7,8,9))
+```
+
+## Using `rep` for dummy variables
+```{r}
+#| eval: true
+airquality %>%
+  mutate(group = rep(c("a", "b"), length.out = n())) %>%
+  head()
 ```
 
 

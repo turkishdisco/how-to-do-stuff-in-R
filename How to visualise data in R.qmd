@@ -617,6 +617,54 @@ mpg %>%
                linewidth = 1.5) +
   stat_summary(fun = median, geom = "point", colour = "red", size = 2.5)
 ```
+```{r}
+# Another option if you want to plot manually created min and max values, and add
+# a separate variable as well as the linerange:
+# NOTE: you must wrap quantile() in as.numeric() otherwise this will produce a
+# NAMED vector instead of scalar values which can cause issues when rending Quarto.
+data = airquality %>%
+  group_by(Month) %>%
+  summarise(q1 = as.numeric(quantile(Temp, na.rm=T, probs=0.25)),
+            median = median(Temp, na.rm=T),
+            q3 = as.numeric(quantile(Temp, na.rm=T, probs=0.75)),
+            ozone = median(Ozone, na.rm=T))
+
+data %>%
+  ggplot(aes(x = reorder(Month, median), y = median)) +
+  geom_linerange(aes(ymin = q1, ymax = q3)) +
+  geom_line(aes(y = ozone, colour = "ozone", group = 1)) +
+  theme_classic()
+```
+
+You could also use `geom_ribbon` instead (this time there's a grouping factor and the median is superimposed in the ribbons too):
+```{r}
+data2 = airquality %>%
+  mutate(group = rep(c("a", "b"), length.out = n())) %>%
+  group_by(Month, group) %>%
+  summarise(q1 = as.numeric(quantile(Temp, na.rm=T, probs=0.25)),
+            median = median(Temp, na.rm=T),
+            q3 = as.numeric(quantile(Temp, na.rm=T, probs=0.75)),
+            ozone = median(Ozone, na.rm=T)) %>%
+  mutate(q1 = if_else(group == "a", q1+5, q1),
+         q3 = if_else(group == "a", q3+5, q3),
+         median = if_else(group == "a", median+5, median))
+
+data2 %>%
+  ggplot(aes(x = Month)) +
+  geom_ribbon(data = data2, aes(ymin = q1, ymax = q3, group = group, fill = group),
+                 position = position_dodge(width = 0.1), alpha = 0.5) +
+  geom_line(aes(y = median, colour = group, group = group),
+            position = position_dodge(width = 0.1), linewidth = 1) +
+  theme_classic() +
+  scale_fill_manual(values = c("#9FB9C8", "#E87D1E"),
+                        breaks = c("a", "b"),
+                        labels = c("a", "b")) +
+  scale_colour_manual(values = c("#9FB9C8", "#E87D1E"),
+                        breaks = c("a", "b"),
+                        labels = c("a", "b"))
+```
+
+
 
 
 Add confidence intervals (requires the `Hmisc` package):
@@ -666,7 +714,7 @@ ggplot(data.frame(x = c("axis.text.x"), y= c("axis.text.y")), aes(x=x, y=y)) +
 #| eval: false
 p + ggtitle("Main plot title", subtitle = "Plot subtitle")
 
-# use labs to add a caption
+# use labs to add a caption/footnote at the bottom right of the plot
 p + labs(caption = "my caption")
 
 # caption is right-justified by default. To change:
@@ -907,6 +955,20 @@ plot + scale_x_continuous(labels = yr_labels)
 Another option is to use an anonymous function to extract the last two digits of the year
 ```{r}
 plot + scale_x_continuous(breaks = 2013:2024, labels = function(x) substr(as.character(x), 3, 4))
+```
+
+If you have a character (discrete) x-axis and want to dodge the labels, try `guide_axis`. Note that this only works if the labels are very short.
+```{r}
+#| eval: true
+df = data.frame(
+  x = c("a", "b", "c", "d", "e", "f", "g", "h", "i", "j"),
+  y = c(10, 11, 12, 13, 14, 15, 16, 17, 18, 19)
+)
+
+df %>%
+  ggplot(aes(x = x, y = y)) +
+  geom_point() +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))
 ```
 
 
