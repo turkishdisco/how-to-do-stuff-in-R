@@ -8,9 +8,10 @@ format:
     embed-resources: true
     toc: true
     toc-depth: 3
-    toc-expand: 2
+    toc-expand: 1
     number-sections: true
     toc-location: left
+    html-table-processing: none
     df-print: kable
     code-fold: false
     theme: default
@@ -38,7 +39,9 @@ Notes:
 #| echo: false
 #| message: false
 #| output: false
+
 library(pacman)
+
 p_load(
   tidyverse,
   janitor,
@@ -52,7 +55,10 @@ p_load(
   ggcorrplot,
   broom,
   pwr,
-  pwrss)
+  pwrss,
+  MatchIt,
+  optmatch,
+  marginaleffects)
 ```
 
 # Packages {#sec-packages}
@@ -674,6 +680,19 @@ slice_sample(df, prop = 0.5, replace = F)
 # note that sample_n has been superseded by slice_sample
 ```
 
+Recipe: you have a grouped long-format dataframe and you want to return the maximum of some value for each level of the grouping factor. Note the essential use of `with_ties` in `slice_max`. 
+```{r}
+nycflights13::flights %>%
+  top_n(n = 5)
+
+nycflights13::flights %>%
+  group_by(carrier) %>%
+  slice_max(n = 1, order_by = arr_delay, with_ties = F) %>%
+  left_join(nycflights13::airlines, by = "carrier") %>%
+  select(name, arr_delay) %>%
+  arrange(desc(arr_delay))
+```
+
 
 Recipe: look for duplicate entries according to certain variables and use `slice_tail` to select the last observation in each grouping. This works by assigning a row number to each row according to its arrangement/grouping, then simply retaining the last row in the group.
 ```{r}
@@ -1239,8 +1258,14 @@ case_when(
 
 Extract the first word in a string
 ```{r}
+df %>% mutate(across(c(given_name_s, family_name), ~ str_extract(.x, "\\w+")))
+
 df %>% mutate(Award_body = sapply(strsplit(QUIDTITLE, " "), function(x) x[1]))
 # e.g. this takes "TCL Level 1 Award In..." and extracts "TCL". 
+
+string = "Today is Thursday"
+stringr::word(string) # gives "Today"
+stringr::word(string, 3) # gives "Thursday"
 ```
 
 
@@ -1804,36 +1829,49 @@ df %>%
 # tab_footnote(html("this is my long <br> caption that won't fit))
 ```
 
-Styles include:
+The 6 available styles are shown below. Note that the default colour is blue, but this can be either blue, cyan, pink, gree, red, or gray. AND note that it HAS to be the American spelling of `color`. 
 ```{r}
+#| eval: true
+
 df = nycflights13::planes %>%
   filter(type != "Rotorcraft") %>%
   tabyl(engine, type) 
 
 df %>% gt() %>%
-  opt_stylize(style = 1) %>%
+  opt_stylize(style = 1, color = "blue", add_row_striping = T) %>%
   tab_header("Style 1")
 
 df %>% gt() %>%
-  opt_stylize(style = 2) %>%
+  opt_stylize(style = 2, color = "blue", add_row_striping = T) %>%
   tab_header("Style 2")
 
 df %>% gt() %>%
-  opt_stylize(style = 3) %>%
+  opt_stylize(style = 3, color = "blue", add_row_striping = T) %>%
   tab_header("Style 3")
 
 df %>% gt() %>%
-  opt_stylize(style = 4) %>%
+  opt_stylize(style = 4, color = "blue", add_row_striping = T) %>%
   tab_header("Style 4")
 
 df %>% gt() %>%
-  opt_stylize(style = 5) %>%
+  opt_stylize(style = 5, color = "blue", add_row_striping = T) %>%
   tab_header("Style 5")
 
 df %>% gt() %>%
-  opt_stylize(style = 6) %>%
+  opt_stylize(style = 6, color = "blue", add_row_striping = T) %>%
   tab_header("Style 6")
 ```
+
+If row stripes don't display in the HTML output, add this to the YAML:
+```{r}
+#| eval: false
+#| include: true
+
+# format:
+#  html:
+#   html-table-processing: none
+```
+
 
 
 ### Other `gt` functions
@@ -2916,12 +2954,15 @@ pwr::pwr.t.test(d = 0.25,
 # For samples of different sizes:
 pwr::pwr.t2n.test(n1 = 300, n2 = 350, d= NULL, sig.level = 0.05, power = 0.80)
 ```
+
 E.g. this says that with sample sizes of 300 and 350, the minimum detectable effect size for 80% power is 0.22. If we want to find out the minimum sample sizes needed for an effect size of 0.15 (698 for each group = 1,396 total).
+
 ```{r}
 #| eval: true
 # For samples of different sizes:
 pwr::pwr.t.test(n = NULL, d = 0.15, sig.level = 0.05, power = 0.80, type = "two.sample")
 ```
+
 Other power analysis packages include `pwrss` (a range of options, inc plots), `BUCSS` (using previously published test statistics for sample size planning), `MBESS` (using confidence limits), `PowerUpR` (for multilevel designs), `webpower` (a range of options), `simglm` (generalised linear mixed models), `Superpower` (simulation for ANOVA designs only). 
 
 ```{r}
@@ -2939,4 +2980,92 @@ pwrss::pwrss.t.2means(mu1 = 30, mu2 = 28, sd1 = 12, sd2 = 8,
                alternative = "not equal")
 ```
 
+
+## Propensity Score Matching (PSM)
+PSM is a quasi-experimental technique used when there is non-random assignment to some condition. The aim is to create a subset of units in a control group which are matched on relevant covariates, i.e. to compare 'like for like'. 
+
+The example below is from the `MatchIt` package. The aim is to estimate the causal effect of `treat` on earnings (`re78`). 
+```{r}
+#| eval: true
+library(MatchIt)
+
+data("lalonde")
+head(lalonde)
+```
+The first step is to check initial covariate imbalance. The code below uses logistic regression to derive a **propensity score**, but does not attempt any matching. In the results you need to look at the Std. Mean Diff (close to 0 indicates balance) and the Var.Ratio (close to 1 indicates balance). Here we have severe imbalances, suggesting that currently `treat=0` is not a good comparison group. 
+```{r}
+#| eval: true
+
+m.out0 <- matchit(treat ~ age + educ + race + married + 
+                    nodegree + re74 + re75,
+                  data = lalonde,
+                  method = NULL,
+                  distance = "glm")
+
+summary(m.out0)
+```
+
+The next step is to perform matching. There are different options available (using the `method` argument), but here we just use nearest neighbour. When looking at the summary, use `un=F` to suppress the first table from above before matching is carried out. Unfortunately there are still some imbalances here, and quite a few units (244) remain unmatched. 
+
+```{r}
+#| eval: true
+m.out1 <- matchit(treat ~ age + educ + race + married + 
+                    nodegree + re74 + re75,
+                  data = lalonde,
+                  method = "nearest",
+                  distance = "glm")
+
+summary(m.out1, un = F)
+```
+
+We can visualise the matching results with some plots.
+```{r}
+#| eval: true
+
+plot(m.out1, type = "jitter", interactive = FALSE)
+
+plot(m.out1, type = "density", interactive = FALSE,
+     which.xs = ~age + married + re75)
+```
+Try a different matching method to improve balance[^Other methods include optimal, full, quick, genetic, exact, cem, and caliper; see here: [https://cran.r-project.org/web//packages//MatchIt/vignettes/matching-methods.html](https://cran.r-project.org/web//packages//MatchIt/vignettes/matching-methods.html). The below uses "full" matching whereby every treated unit is matched to at least one control, and every control unit to at least one treatment. Also change the link function to "probit" (why?). Note that this requires the `optmatch` package.
+```{r}
+#| eval: true
+m.out2 <- matchit(treat ~ age + educ + race + married + 
+                    nodegree + re74 + re75,
+                  data = lalonde,
+                  method = "full",
+                  distance = "glm",
+                  link = "probit")
+
+summary(m.out2, un = F)
+```
+
+This is a much better result. Visualise with a Love plot:
+```{r}
+#| eval: true
+
+plot(summary(m.out2))
+```
+To extract the raw matched data:
+```{r}
+#| eval: true
+m.data <- match_data(m.out2)
+
+head(m.data)
+```
+
+We can now proceed to analyse the data using standard regression or other techniques. Make sure to use the `weights` in the output above when doing so. 
+
+```{r}
+#| eval: true
+fit <- lm(re78 ~ treat * (age + educ + race + married +
+                            nodegree + re74 + re75),
+          data = m.data,
+          weights = weights)
+
+avg_comparisons(fit,
+                variables = "treat",
+                vcov = ~subclass,
+                newdata = subset(treat == 1))
+```
 
