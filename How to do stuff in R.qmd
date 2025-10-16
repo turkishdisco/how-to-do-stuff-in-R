@@ -2154,6 +2154,10 @@ To reference this use an at-symbol as a link:
 #| fig-width: 4
 ```
 
+To embed an external image file, add this to the Quarto file text (not in a code chunk):
+
+`![HackneyMap](hackney_schools_map.png){height=600}`
+
 Running Quarto or Markdown render does not save the objects in the workspace. You can use code to run an .Rmd or .qmd file which will save the objects. The code below needs to be copied and pasted into the console. 
 ```{r}
 # for markdown
@@ -2741,7 +2745,7 @@ car::influencePlot(model, id.method="identify", main="Influence Plot",
 # parameters estimates of the model.
 ```
 
-# Linear mixed effects modelling
+## Linear mixed effects modelling
 ```{r}
 library(lme4) # original lme package
 library(lmerTest) # for obtaining p-values for estimates
@@ -2824,7 +2828,7 @@ summary(without.int)
 ```
 
 
-### Quantile regression
+## Quantile regression
 ```{r}
 library(quantreg)
 m1 = rq(dv ~ iv, tau=c(.05, .25, .5, .75, .95), data=df)
