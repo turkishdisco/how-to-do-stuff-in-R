@@ -40,6 +40,8 @@ p_load(
   networkD3,
   purrr,
   ggExtra,
+  grid,
+  gridExtra,
   GGally,
   ggpubr,
   directlabels,
@@ -193,24 +195,6 @@ ggplot(df, aes(x = x, y = y)) +
                linetype = "dashed")
 ```
 
-If you want to sum a value across factor levels using a linegraph, you need to use `stat_summary` (the alternative is to calculate summary values before piping into ggplot):
-```{r}
-#| echo: false
-df = data.frame(
-  year = c(2011, 2011, 2011, 2012, 2012, 2012, 2013, 2013, 2013, 2014, 2014, 2014),
-  value = c(10, 15, 10, 20, 10, 10, 15, 30, 20, 10, 20, 10)
-)
-```
-
-```{r}
-#| fig-height: 3
-#| fig-width: 5
-df %>%
-  ggplot(aes(x=year, y=value)) +
-  stat_summary(fun = "sum", geom = "line")
-```
-
-
 
 ### Linetypes
 Example usage: `linetype = "dashed"`
@@ -354,6 +338,30 @@ palmerpenguins::penguins %>%
 # note: to change decimal places, "%.0f", "%.2f" etc
 ```
 
+## Plotting summary data
+Use `stat_summary` to plot statistical summaries like sums or means. This requires raw-format data (i.e. which hasn't already been summarised) as `ggplot` does the calculations internally. See @sec-summarydata for more information. 
+
+```{r}
+#| echo: false
+df = data.frame(
+  year = c(2011, 2011, 2011, 2012, 2012, 2012, 2013, 2013, 2013, 2014, 2014, 2014),
+  value = c(10, 15, 10, 20, 10, 10, 15, 30, 20, 10, 20, 10)
+)
+```
+
+```{r}
+#| fig-height: 3
+#| fig-width: 5
+df %>%
+  ggplot(aes(x=year, y=value)) +
+  stat_summary(fun = "sum", geom = "line")  +
+  ggtitle("fun = 'sum', geom = 'line'")
+
+df %>%
+  ggplot(aes(x=year, y=value)) +
+  stat_summary(fun = "mean", geom = "bar") +
+  ggtitle("fun = 'mean', geom = 'bar'")
+```
 
 ## Boxplot
 ```{r}
@@ -479,7 +487,7 @@ This recipe produces an interactive html Sankey chart using the `networkD3` pack
 ```{r}
 #| fig-height: 4
 #| fig-width: 5
-#| eval: false
+
 links = data.frame(
   Var1 = c("Failed_Phonics", "Passed_Phonics", "Failed_Phonics", "Passed_Phonics"),
   Var2 = c("Failed_KS2", "Failed_KS2", "Passed_KS2", "Passed_KS2"),
@@ -503,7 +511,11 @@ networkD3::sankeyNetwork(Links = links,
               NodeID = "name", 
               fontSize = 12, 
               fontFamily = "sans-serif")
+```
 
+This can be made into a function to be applied iteratively. 
+```{r}
+#| eval: false
 # function
 sankey_function = function(var1, var2, lab1, lab2, lab3, lab4){
   
@@ -562,12 +574,13 @@ ggMarginal(p1, type = "histogram",
 Create a scatterplot matrix using `GGally::ggpairs`. This is quite customisable depending on what you need. Check `help(ggpairs)`
 ```{r}
 #| message: false
+#| fig-height: 7
 # note: you can also add colouring by factor if you add: ggplot2::aes(colour = Species)
 GGally::ggpairs(iris)
 ```
 
 
-# Plotting statistical summary data
+# Plotting statistical summary data {#sec-summarydata}
 Often we want to plot statistical summaries rather than raw data. `ggplot` has functions to do this "in-plot", i.e. instead of you having to compute summaries manually beforehand. One option is to use arguments within `geom_bar`.
 ```{r}
 #| fig-height: 3
@@ -1067,38 +1080,59 @@ p + theme_chris()
 #| fig-height: 3
 #| fig-width: 5
 # by default, legends appear on the right
-mpg %>%
+p = mpg %>%
+  mutate(year = as.factor(year),
+         cyl = as.factor(cyl)) %>%
   group_by(year, cyl) %>%
   summarise(mean_cty = mean(cty)) %>% 
-  ggplot(aes(x = year, y= mean_cty, fill = factor(cyl))) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  ggtitle("right (default)")
+  ggplot(aes(x = year, y= mean_cty, fill = cyl)) +
+  scale_x_discrete(breaks = c(1999, 2008)) +
+  geom_bar(stat = "identity", position = position_dodge()) 
+
+p
 ```
 
 
 ```{r}
 #| eval: false
+#| fig-height: 3
+#| fig-width: 5
 # To change:
 
 p + theme(legend.position = "none") 
 p + theme(legend.position = "top") 
 p + theme(legend.position = "bottom")
 
-# custom location for legend
-p + theme(legend.position = c(0.1, 0.9))
+# custom location for legend (first number is left-right, second is bottom-top)
+p + theme(legend.position = c(0.5, 0.9))
 ```
 
-```{r}
-#| eval: false
-# alter legend box aesthetics, e.g. make transparent
-p + theme(legend.background = element_blank())
-```
 
 To control legend wrapping (i.e. a single horizontal row instead of wrapping into two rows) - especially when `legend.position = "bottom"`.
 ```{r}
-#| eval: false
-p + guides(colour = guide_legend(nrow = 1)) 
+#| eval: true
+#| fig-height: 3
+#| fig-width: 5
+p + theme(legend.position = "bottom") + guides(fill = guide_legend(nrow = 1)) 
 ```
+
+Filling and outlining:
+```{r}
+#| eval: true
+#| fig-height: 3
+#| fig-width: 5
+
+# make box transparent
+p + theme(legend.background = element_blank(),
+          legend.position = c(0.9, 0.7))
+
+# add grey box
+p + theme(legend.box.background = element_rect(colour = "grey", linewidth = 2))
+
+# fill box
+p + theme(legend.background = element_rect(fill = "grey"))
+```
+
 
 You can control the palette, breaks, labels, and name. E.g. if the factor labels are too long, you can shorten them. Use a separate call to contol other attributes like `linetype` or `fill`. In fact, the `scale_*_manual` functions are incredibly versatile for this kind of task (and are discussed in more detail below).
 ```{r}
@@ -1526,10 +1560,10 @@ To add points based on geometry:
 ```{r}
 # say you have a data frame from GIAS with easting and northing values of schools (these could be lat/long too)
 map_df = data.frame(
-school = c(1:15),
-easting = c(427144, 390498, 391459, 453596, 332195, 439952, 397143, 331548, 504305, 527647, 349039, 437349, 504740, 448965, 166988),
-northing = c(433927, 323814, 162039,  86591, 391270, 114064, 157408, 390872, 208312, 169328, 405788, 377158, 103181, 361343,  44078),
-pupils  = c(28, 23, 59, 22, 28, 76, 13, 14, 57, 43, 25, 12, 59, 52, 31)
+                    school = c(1:15),
+                    easting = c(427144, 390498, 391459, 453596, 332195, 439952, 397143, 331548, 504305, 527647, 349039, 437349, 504740, 448965, 166988),
+                    northing = c(433927, 323814, 162039,  86591, 391270, 114064, 157408, 390872, 208312, 169328, 405788, 377158, 103181, 361343,  44078),
+                    pupils  = c(28, 23, 59, 22, 28, 76, 13, 14, 57, 43, 25, 12, 59, 52, 31)
 )
 
 # the shapefile is based on long/lat, so you need to convert Eastings and Northings.
@@ -1544,17 +1578,19 @@ schools.sf = st_as_sf(map_df, coords = c("easting", "northing"), remove = FALSE,
 # check that the points themselves work
 # plot(schools.sf$geometry)
 
-# add to the map
+# add to the map and add text labels
 eng_reg_map %>%
   ggplot() +
   geom_sf(fill   = NA,
           colour = "grey50") +
   geom_sf(data = schools.sf, colour = "red", size = 2) +
+  ggrepel::geom_text_repel(data = schools.sf,
+                  aes(x = st_coordinates(schools.sf)[,1],
+                      y = st_coordinates(schools.sf)[,2],
+                      label = school)) +
   theme_void()
 # optionally if you have used aes(colour = pupils): + scale_colour_gradient(low = "grey", high = "red")
 ```
-
-
 
 # Odd bits for sorting later
 
@@ -1631,7 +1667,7 @@ palmerpenguins::penguins %>%
              scales = "fixed") +
   # customisation of strips/panels:
   theme(strip.text = element_text(face = "bold", color = "black", hjust = 0.5, size = 10),
-        strip.background = element_rect(fill = NA, linetype = "solid", color = "black"))
+        strip.background = element_rect(fill = NA, linetype = "solid", color = "black")) +
   theme_bw()
 ```
 
@@ -1643,7 +1679,8 @@ palmerpenguins::penguins %>%
   drop_na(sex) %>%
   ggplot(aes(x=bill_length_mm, y=flipper_length_mm)) + 
   geom_point() +
-  facet_grid(species ~ sex) +
+  facet_grid(species ~ sex,
+             scales = "fixed") +
   theme_bw()
 ```
 
@@ -1717,6 +1754,135 @@ annotate_figure(ggarrange(a, b, ncol=2,
     fig.lab.size = 14)
 ```
 
+Another recipe for a common legend. This comes from the English Hubs impact eval where there were 6 individual plots combined into a matrix plot. Each had its own legend which was inefficient. This recipe required one plot with all waves together so as to get a legend with all available values. Then a custom function is used to extract the legend from this. Aftwards, combine the individual plots with the extracted legend. Note that the recipe below is only useful if you want to make many pairwise comparisons, e.g. compare some level of a factor against some constant (in this case, compare control schools against each wave separately). 
+```{r}
+#| eval: false
+# create plot with all values on it together
+all = wave_plot_all(y1_schl)
+
+# extract the legend from this
+# from here: https://www.geeksforgeeks.org/r-language/add-common-legend-to-combined-ggplot2-plots-in-r/
+get_only_legend <- function(plot) {
+  plot_table <- ggplot_gtable(ggplot_build(plot))
+  legend_plot <- which(sapply(plot_table$grobs, function(x) x$name) == "guide-box")
+  legend <- plot_table$grobs[[legend_plot]]
+  return(legend)
+}
+
+legend = get_only_legend(all)
+
+# create the individual plots (this also uses a custom plotting function)
+w1 = wave_plot_single(y1_schl, wave = 201920, "#12436D", "Wave 1", treatment_start = "2019-09-01")
+w2 = ...
+
+# combine these
+combined_plot = grid.arrange(w1, w2, w3, w4, w5, w6)
+
+# combine this with the extracted legend
+grid.arrange(combined_plot, legend, nrow = 2, heights = c(10, 1))
+```
+
+Building on this further, if you would like to add a figure caption then there this is this rather convoluted example using the grid package and arrangeGrob. The below is a reproducible example.
+```{r}
+#| eval: true
+
+# make plot with all
+all = gcookbook::countries %>%
+  filter(Name %in% c("United Kingdom", "United States", "Spain", "Paraguay",
+                     "India")) %>%
+  ggplot(aes(x = Year, y = GDP)) + 
+  geom_line(aes(colour = Name), linewidth = 0.8) +
+  theme_bw() +
+  scale_colour_manual(name = NULL,
+                      values = c("red", "#12436D", "#28A197", "#801650", "#F46A25"),
+                      breaks = c("United Kingdom", "United States", "Spain", "Paraguay",
+                                 "India")) +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size=11),
+        legend.background = element_rect(colour = "grey", linewidth = 1)) +
+  guides(colour = guide_legend(nrow = 1)) 
+all
+
+# extract legend
+get_only_legend <- function(plot) {
+  plot_table <- ggplot_gtable(ggplot_build(plot))
+  legend_plot <- which(sapply(plot_table$grobs, function(x) x$name) == "guide-box")
+  legend <- plot_table$grobs[[legend_plot]]
+  return(legend)
+}
+
+legend = get_only_legend(all)
+
+# note: looks like ggpubr::get_legend can do this already
+legend = ggpubr::get_legend(all)
+
+# create individual plots
+p1 = gcookbook::countries %>%
+  filter(Name %in% c("United Kingdom", "United States")) %>%
+  ggplot(aes(x = Year, y = GDP)) + 
+  geom_line(aes(colour = Name), linewidth = 0.8) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  scale_colour_manual(name = "Country",
+                      values = c("red", "#12436D"),
+                      breaks = c("United Kingdom", "United States")) 
+
+p2 = gcookbook::countries %>%
+  filter(Name %in% c("United Kingdom", "Spain")) %>%
+  ggplot(aes(x = Year, y = GDP)) + 
+  geom_line(aes(colour = Name), linewidth = 0.8) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  scale_colour_manual(name = "Country",
+                      values = c("red", "#28A197"),
+                      breaks = c("United Kingdom", "Spain")) 
+
+p3 = gcookbook::countries %>%
+  filter(Name %in% c("United Kingdom", "Paraguay")) %>%
+  ggplot(aes(x = Year, y = GDP)) + 
+  geom_line(aes(colour = Name), linewidth = 0.8) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  scale_colour_manual(name = "Country",
+                      values = c("red", "#801650"),
+                      breaks = c("United Kingdom", "Paraguay"))
+
+p4 = gcookbook::countries %>%
+  filter(Name %in% c("United Kingdom", "India")) %>%
+  ggplot(aes(x = Year, y = GDP)) + 
+  geom_line(aes(colour = Name), linewidth = 0.8) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  scale_colour_manual(name = "Country",
+                      values = c("red", "#F46A25"),
+                      breaks = c("United Kingdom", "India")) 
+
+# combine
+combined_plot = gridExtra::grid.arrange(p1, p2, p3, p4)
+
+# combine the individual plots, legend, a title, and a caption:
+main_plot <- gridExtra::arrangeGrob(combined_plot, legend, 
+                         nrow = 2, 
+                         heights = c(10, 1.5))
+
+title <- grid::textGrob("Main Title for Combined Plots",
+                  gp = grid::gpar(fontsize = 16, fontface = "bold"),
+                  hjust = 0.5, x = 0.5)
+
+caption <- grid::textGrob("Note: This is some explanatory text.",
+                    gp = grid::gpar(fontsize = 11),  # font size
+                    hjust = -0.05,                 # left-align
+                    x = 0)
+
+final_plot <- gridExtra::arrangeGrob(title, main_plot, caption,
+                          ncol = 1,
+                          heights = c(0.1, 1, 0.05))
+
+grid::grid.newpage()
+grid::grid.draw(final_plot)
+```
+
+
 ## Saving
 Files will be saved in your current working directory.
 ```{r}
@@ -1754,6 +1920,7 @@ cowplot::plot_grid(plotlist = covariate_plots)
 dev.off()
 ```
   
+
 Another way to achieve this is by converting variable names to symbols. The function below creates dodged bar plots (with the same y-axis value each time), and then the map function iterates through a list of grouping variables (`vars`) such that each time a new plot is produced with the next grouping factor in the vector. The function uses tidy evaluation (the unquote or 'bang-bang' character `!!`)
 ```{r}
 #| eval: false
