@@ -2333,7 +2333,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">Last updated: 16/10/2025 15:24</p>
+      <p class="date">Last updated: 22/10/2025 13:44</p>
     </div>
   </div>
   
@@ -9631,8 +9631,12 @@ height: 0px !important;
 </div>
 </div>
 <div class="sourceCode cell-code" id="cb183"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb183-1"><a href="#cb183-1" aria-hidden="true" tabindex="-1"></a><span class="co"># notes: can change apply_to to &#39;text&#39; or &#39;fill (default)&#39;;</span></span>
-<span id="cb183-2"><a href="#cb183-2" aria-hidden="true" tabindex="-1"></a><span class="co"># if a cell is NA for formatting, it will be grey (change with</span></span>
-<span id="cb183-3"><a href="#cb183-3" aria-hidden="true" tabindex="-1"></a><span class="co"># na_color). </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb183-2"><a href="#cb183-2" aria-hidden="true" tabindex="-1"></a><span class="co"># if a cell is NA for formatting, it will be grey. na_color seems to have no effect,</span></span>
+<span id="cb183-3"><a href="#cb183-3" aria-hidden="true" tabindex="-1"></a><span class="co"># so use this instead:</span></span>
+<span id="cb183-4"><a href="#cb183-4" aria-hidden="true" tabindex="-1"></a><span class="co"># tab_style_body(</span></span>
+<span id="cb183-5"><a href="#cb183-5" aria-hidden="true" tabindex="-1"></a><span class="co">#     fn = function(x) is.na(x),</span></span>
+<span id="cb183-6"><a href="#cb183-6" aria-hidden="true" tabindex="-1"></a><span class="co">#     style = cell_fill(color = &quot;white&quot;)</span></span>
+<span id="cb183-7"><a href="#cb183-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   )</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="creating-a-large-gt-table-with-rbind" class="level3" data-number="12.1.3">
@@ -11153,7 +11157,8 @@ N = 33 (<strong>95% CI</strong>)</span></span></th>
 <span id="cb191-4"><a href="#cb191-4" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
 <span id="cb191-5"><a href="#cb191-5" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 4</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>To embed an external image file, add this to the Quarto file text (not in a code chunk): <code>![HackneyMap](hackney_schools_map.png){height=600}</code></p>
+<p>To embed an external image file, add this to the Quarto file text (not in a code chunk):</p>
+<p><code>![HackneyMap](hackney_schools_map.png){height=600}</code></p>
 <p>Running Quarto or Markdown render does not save the objects in the workspace. You can use code to run an .Rmd or .qmd file which will save the objects. The code below needs to be copied and pasted into the console.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb192"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb192-1"><a href="#cb192-1" aria-hidden="true" tabindex="-1"></a><span class="co"># for markdown</span></span>

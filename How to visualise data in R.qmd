@@ -11,6 +11,7 @@ format:
     toc-expand: 1
     number-sections: true
     toc-location: left
+    html-table-processing: none
     df-print: kable
     code-fold: false
     theme: default

@@ -1985,8 +1985,12 @@ df %>%
     )
   )
 # notes: can change apply_to to 'text' or 'fill (default)';
-# if a cell is NA for formatting, it will be grey (change with
-# na_color). 
+# if a cell is NA for formatting, it will be grey. na_color seems to have no effect,
+# so use this instead:
+# tab_style_body(
+#     fn = function(x) is.na(x),
+#     style = cell_fill(color = "white")
+#   )
 ```
 
 ### Creating a large gt table with `rbind`
