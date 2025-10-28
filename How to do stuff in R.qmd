@@ -1957,7 +1957,7 @@ df %>%
     columns = c(var_a), 
     rows = everything(), # or try 1:16 for row indices
     direction = "row",
-    colors = scales::col_numeric( 
+    fn = scales::col_numeric( 
       palette = "PuOr",   # or: c("blue", "red")
       domain = c(0, 15)), # leave NULL if you want to use the full range of data
     apply_to = "fill"
@@ -1965,7 +1965,7 @@ df %>%
   # example 2 - use a custom palette
   data_color( 
     columns = c(var_b), 
-    colors = scales::col_numeric( 
+    fn = scales::col_numeric( 
       palette = c('white', 'orange', 'red'),
       domain = c(0, 15)),
     ) %>%
@@ -1979,7 +1979,7 @@ df %>%
   # example 4 - colour based on text value
   data_color(
     columns = var_d,
-    colors = scales::col_factor(
+    fn = scales::col_factor(
       palette = c("green", "red"),
       domain = c("false", "true")
     )
@@ -2383,6 +2383,32 @@ df %>%
 
 # create a lagged variable across several columns
 df %>% mutate(across(contains("_lag"), ~ dplyr::lag(.x, n = 1, default = NA)))
+```
+
+A reproducible example of deriving and graphing percentage change using `dplyr::lag`. The graph represents percentage change between each month across 3 variables. Use `geom_label` to get white boxes around the figures, otherwise use `geom_text`. 
+```{r}
+#| eval: true
+
+df = airquality %>%
+  group_by(Month) %>%
+  summarise(ozone_m = mean(Ozone, na.rm=T),
+            solar_m = mean(Solar.R, na.rm=T),
+            wind_m = mean(Wind, na.rm=T)) %>%
+  pivot_longer(-c(Month)) %>%
+  arrange(name, Month) %>%
+  group_by(name) %>%
+  mutate(lag = dplyr::lag(value, n = 1, default = NA)) %>%
+  mutate(diff = value - lag) %>%
+  mutate(change_pc = diff / lag * 100)
+df
+
+df %>%
+  ggplot(aes(x = Month, y = value, group = name, colour = name)) +
+  geom_line() +
+  geom_point() +
+  geom_label(aes(label = round(change_pc,1)), size = 3.5, alpha = 0.7, vjust = -0.5) +
+  theme_classic() +
+  coord_cartesian(ylim = c(0,250))
 ```
 
 

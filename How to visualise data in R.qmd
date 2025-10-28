@@ -135,7 +135,8 @@ shapes <- data.frame(
 
 ggplot(shapes, aes(x, y)) + 
   geom_point(aes(shape = shape), size = 5, fill = "red") +
-  geom_text(aes(label = shape), hjust = 0, nudge_x = 0.15) +
+  geom_text(aes(label = shape), hjust = 0, nudge_x = 0.15,
+            show.legend = T) +
   scale_shape_identity() +
   expand_limits(x = 4.1) +
   theme_void()
@@ -333,7 +334,8 @@ palmerpenguins::penguins %>%
   geom_bar(stat = "identity", width = 0.8) +
   geom_text(aes(label = paste0(sprintf("%.1f", prop * 100), "%")), 
             position = position_stack(vjust = 0.5),
-            size = 3) +
+            size = 3,
+            show.legend = F) +
   ylab("Proportion")
   
 # note: to change decimal places, "%.0f", "%.2f" etc
@@ -479,7 +481,8 @@ palmerpenguins::penguins %>%
   geom_col(color = "black") +
   coord_polar(theta = "y") +
   geom_text(aes(label = n),
-            position = position_stack(vjust = 0.5)) +
+            position = position_stack(vjust = 0.5),
+            show.legend = F) +
   theme_void()
 ```
 
@@ -753,6 +756,37 @@ plot + geom_text(x = as.Date("2025-09-01"), y = 100, label = "my label", hjust =
 ```
 
 
+Note that you should use `geom_label` if you want white boxes surrounding the text. The example below calculates percentage changes for each month for 3 variables and adds text to show these percentages. Pay attention to the legend - by default it includes little 'a' characters because it's linked to text. To turn this off, specify `show_legend = F` in `geom_label` (then the legend will revert to showing dots and lines). 
+```{r}
+df = airquality %>%
+  group_by(Month) %>%
+  summarise(ozone_m = mean(Ozone, na.rm=T),
+            solar_m = mean(Solar.R, na.rm=T),
+            wind_m = mean(Wind, na.rm=T)) %>%
+  pivot_longer(-c(Month)) %>%
+  arrange(name, Month) %>%
+  group_by(name) %>%
+  mutate(lag = dplyr::lag(value, n = 1, default = NA)) %>%
+  mutate(diff = value - lag) %>%
+  mutate(change_pc = diff / lag * 100)
+df
+
+df %>%
+  ggplot(aes(x = Month, y = value, group = name, colour = name)) +
+  geom_line() +
+  geom_point() +
+  geom_label(aes(label = round(change_pc,1)), 
+             size = 3.5, 
+             alpha = 0.7, 
+             vjust = -0.5,
+             colour = "black", # if you don't want text to be coloured
+             border.colour = "grey70",
+             show.legend = T) +
+  theme_classic() +
+  coord_cartesian(ylim = c(0,250))
+```
+
+
 
 Recipe to add the stat to the top of a bar.
 ```{r}
@@ -837,7 +871,7 @@ p + scale_y_continuous(labels = scales::label_dollar(prefix = "£"),
 p + scale_x_continuous(n.breaks = 17)
 
 # thousands separator
-p + scale_y_continuous(labels = label_comma(big.mark = ","))
+p + scale_y_continuous(labels = scales::label_comma(big.mark = ","))
 
 # dates and times
 p + scale_y_continuous(labels = label_date(format = "%Y-%m-%d"))
@@ -1251,8 +1285,13 @@ ggplot2::diamonds %>%
 Quick manual palettes for sequential and categorical variables (adjust to number needed).
 ```{r}
 seq2 = c("#12436D", "#6BACE6")
+scales::show_col(seq2)
+
 seq3 = c("#12436D", "#2073BC", "#6BACE6")
+scales::show_col(seq3)
+
 cat4 = c("#12436D", "#28A197", "#801650", "#F46A25", "#3D3D3D", "#A285D1")
+scales::show_col(cat4)
 ```
 
 
@@ -1696,7 +1735,7 @@ a = gcookbook::countries %>%
     filter(Name == "United Kingdom") %>%
     ggplot(aes(x = Year, y = GDP)) + 
     geom_line() +
-    scale_y_continuous(labels = label_comma(big.mark = ",")) +
+    scale_y_continuous(labels = scales::label_comma(big.mark = ",")) +
     theme_bw()
 
 # plot 2
@@ -1704,7 +1743,7 @@ b = gcookbook::countries %>%
     filter(Name == "United Kingdom") %>%
     ggplot(aes(x = Year, y = healthexp)) + 
     geom_line() +
-    scale_y_continuous(labels = label_comma(big.mark = ",")) +
+    scale_y_continuous(labels = scales::label_comma(big.mark = ",")) +
     theme_bw()
 
 # combine
@@ -1940,7 +1979,8 @@ bar_fun = function(data, var1, var2) {
     geom_bar(stat = "identity", position = position_dodge()) +
     geom_text(aes(label = PHONICSMARK), 
               vjust = 1.2, 
-              position = position_dodge(width = 1)) +
+              position = position_dodge(width = 1),
+              show.legend = T) +
     labs(title = paste("By", as_string(var2))) +
     theme_classic() +
     theme(axis.title = element_blank())
