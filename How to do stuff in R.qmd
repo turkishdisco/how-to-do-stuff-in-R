@@ -2412,6 +2412,17 @@ df %>%
 ```
 
 
+## Cumulative sum
+```{r}
+#| eval: true
+
+airquality %>%
+  group_by(Month) %>%
+  summarise(sum = sum(Solar.R, na.rm=T)) %>%
+  mutate(cumsum = cumsum(sum))
+```
+
+
 ## Encoding
 Note that ASCII encoding was designed to cope with 128 commonly used characters in English, not other languages. Unicode is a standardised system for representing all languages but it's not a form of encoding. UTF-8 is one way to encode unicode characters. 
 
