@@ -963,10 +963,15 @@ padding = mpg %>%
     pivot_longer(c(cty_m)) %>%
     ggplot(aes(x = year, y = value)) +
     stat_summary(fun = "mean", geom = "line", aes(group = 1))
+
 padding
 
-# getting rid of padding:
-padding +  scale_x_discrete(expand = c(0.1, 0.1))
+# changing padding with expand:
+# note that the first figure is a multiplier - what percent to expand the padding on either side;
+# the second figure is an additive expansion
+# also note that both of these apply symetrically to each side of the axis
+padding + scale_x_discrete(expand = c(0.1, 0)) + ggtitle("Multiplicative")
+padding + scale_x_discrete(expand = c(0, 1)) + ggtitle("Additive")
 ```
 
 
