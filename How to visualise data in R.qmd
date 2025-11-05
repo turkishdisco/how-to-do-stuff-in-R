@@ -1287,7 +1287,19 @@ Quick manual palettes for sequential and categorical variables (adjust to number
 seq2 = c("#12436D", "#6BACE6")
 scales::show_col(seq2)
 
-seq3 = c("#12436D", "#2073BC", "#6BACE6")
+seq2 = c("#4B1D73", "#C1A0D7")
+scales::show_col(seq2)
+
+seq2 = c("#0C4C5A", "#5DC1B9")
+scales::show_col(seq2)
+
+seq2 <- c("#7A0C2E", "#E87B79")
+scales::show_col(seq2)
+
+seq2 <- c("#37474F", "#90A4AE")
+scales::show_col(seq2)
+
+seq3 = c("#12436D", "#2073BC", "#6BACE6") 
 scales::show_col(seq3)
 
 cat4 = c("#12436D", "#28A197", "#801650", "#F46A25", "#3D3D3D", "#A285D1")
