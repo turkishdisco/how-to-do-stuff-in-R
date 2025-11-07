@@ -2437,6 +2437,32 @@ airquality %>%
 ```
 
 
+## Rounding and leading zeroes
+A generic function to remove the leading zero from any numeric value.
+```{r}
+#| eval: true
+num_format = function(val) { sub("^(-?)0.", "\\1.", sprintf("%.3f", val)) }
+
+# regex says: at the start of the string (^), look for a zero followed by a decimal point.
+# also optionally capture cases of minus figures (-?).
+# replace whatever was in the first capture group (\\1.) with a decimal point
+
+num_format(0.0234)
+```
+
+
+The `rstatix` package provides functions for formatting p-values specifically with `p_format`:
+```{r}
+#| eval: true
+p = 0.00230
+
+rstatix::p_format(p, leading.zero = F)
+rstatix::p_format(p, leading.zero = F, digits = 1)
+rstatix::p_format(p, leading.zero = F, digits = 3, accuracy = 0.01)
+rstatix::p_format(p, leading.zero = F, digits = 3, accuracy = 0.01, add.p = T, space = T)
+```
+
+
 ## Encoding
 Note that ASCII encoding was designed to cope with 128 commonly used characters in English, not other languages. Unicode is a standardised system for representing all languages but it's not a form of encoding. UTF-8 is one way to encode unicode characters. 
 
