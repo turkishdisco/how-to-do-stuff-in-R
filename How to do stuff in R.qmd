@@ -873,6 +873,20 @@ df %>%
 ```
 
 
+Here is a recipe combining `if_any`, `case_when`, and `str_detect`. Let's say you want to look across two columns and check if they contain a particular string. If so, assign a given value. 
+```{r}
+#| eval: false
+
+df %>%
+  mutate(category = case_when(
+    if_any(c(var1, var2), ~ str_detect(., "English")) ~ "English",
+    if_any(c(var1, var2), ~ str_detect(., "French")) ~ "French",
+    TRUE ~ "Other"
+  )
+)
+```
+
+
 ### Cross-column operations
 There are many examples of the `across` function in this guide. The examples below use `across()` or `purrr:pmap`.
 
