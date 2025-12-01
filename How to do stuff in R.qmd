@@ -888,7 +888,7 @@ df %>%
 
 
 ### Cross-column operations
-There are many examples of the `across` function in this guide. The examples below use `across()` or `purrr:pmap`.
+There are many examples of the `across` function in this guide. The examples below use `across()`, `dplyr::c_across` or `purrr:pmap`.
 
 ```{r}
 # Recipe: sum values above 0 across columns containing "Recall"
@@ -928,6 +928,9 @@ df %>%
   rowwise() %>%
   mutate(equal = all(c_across(starts_with("PupilM")) == first(c_across(starts_with("PupilM"))))) %>%
   ungroup()
+
+# tip: if you want to select column names using regex, e.g. select c1, c2, c3...
+df %>% mutate(c_sum = sum(c_across(matches("^c\\d+$")), na.rm = TRUE))
 ```
 
 ### Creating quantiles
@@ -1160,8 +1163,15 @@ lapply(form_list, function(x)
 ```
 
 # Selecting
-Use `dplyr::select()` to select columns by name or index. If you want to select column names that match a list, try this:
+Use `dplyr::select()` to select columns by name, index, or type. 
 ```{r}
+
+# by type
+starwars %>% select(where(is.numeric))
+
+starwars %>% select(where(is.character))
+
+# to select column names that match a list, try this:
 col_list = c("name", "height", "mass")
 
 starwars_subset = subset(starwars, select = names(starwars) %in% col_list)
@@ -1302,6 +1312,9 @@ Also try:
 ```{r}
 # look for strings containing A-Z, a-z, and a number between 2 and 7
 str_detect(string, "[a-zA-Z][2-7]")
+
+# look for strings starting with a letter followed by 12 consecutive digits
+str_detect(string, "^[A-Za-z]\\d{12}$")
 
 # look for strings starting with A-Z, a-z, 0-9, dashes, apostrophes, or parentheses and ending
 # with an asterisk
@@ -2121,6 +2134,22 @@ table %>%
   # or  flextable::save_as_docx(path = "./filename.docx")
 ```
 
+Note that if you want to have more than one grouping factor, you need to use `tbl_strata` or `tbl_strata2`:
+```{r}
+df %>%
+  select(grouping1, grouping2,
+         var1, var2) %>%
+  tbl_strata(
+    strata = grouping2,
+    .tbl_fun =
+      ~ .x %>%
+      tbl_summary(by = grouping1,
+      statistic = list(
+      all_continuous() ~ "{mean} ({sd})",
+      all_categorical() ~ "{n} / {N} ({p}%)"
+    ))
+  )
+```
 
 
 ## Quarto documents
@@ -2503,6 +2532,20 @@ airquality %>%
   head()
 ```
 
+```{r}
+gl() # can be used to generate factor levels when creating dummy data
+# gl() has 3 arguments: n (number of levels), k (number of repetitions of each level),
+# length (how many rows to produce). So gl(3, 1, 9) produces:
+# 1 2 3   1 2 3   1 2 3
+# (3 levels, each repeated once, for a total of 9)
+
+counts <- c(18, 17, 15, 20, 10, 20, 25, 13, 12)
+outcome <- gl(3, 1, 9)
+treatment <- gl(3, 3)
+m4 <- glm(counts ~ outcome + treatment, family = poisson())
+```
+
+
 
 # Web scraping
 ```{r}
@@ -2856,8 +2899,13 @@ anova(model, model2)
 
 # for tidy output, use the broom.mixed package
 broom.mixed::tidy(model) %>% mutate(across(where(is.numeric), round, 5))
-# need to use the mutate() function to turn of scientific notation of p-values as
-# options(scipen=999) doesn't work.
+
+# to turn off scientific notation for p-values, add this (it makes them characters):
+mutate(p.value = format(round(p.value,5), scientific = FALSE))
+
+# another way to access parts of the model object:
+coef(summary(model)) # fixed
+VarCorr(model) # random
 
 # if convergence issues:
 afex::all_fit(model) # will try with many different optimisers
@@ -2876,11 +2924,12 @@ confint.merMod(model, method="Wald")
 
 # Ben Bolker suggests here (https://stat.ethz.ch/pipermail/r-sig-mixed-models/2013q4/021094.html)
 # that profile = slow but fairly accurate; Wald = fast but least accurate; boot = slowest but most accurate
+```
 
-# diagnostics
+```{r}
+# LMM diagnostics
 # two things: (1) histogram of model residuals
-hist(residuals(model)) 
-qplot(resid(model)) # as recommended by Linck & Cunnings 2015
+hist(residuals(model)) # as recommended by Linck & Cunnings 2015
 plot(resid(model))
 
 # (2) histograms of random effects
@@ -2896,6 +2945,14 @@ lattice::dotplot(ranef(model, condVar = TRUE))
 model.refs <- as.vector(ranef(model)[[1]])[,1]
 hist(model.refs)
 
+# performance package
+performance::model_performance(model) # shows AIC, R2, ICC, RMSE all together
+performance::check_model(model) # lots of tests - can take time if large model
+performance::check_collinearity(model) # examine VIF
+performance::r2(model) # determines most appropriate r2 (inc. conditional/marginal)
+performance::icc(model) # intraclass correlation (proportion of variance explained by grouping structure)
+performance::check_heteroscedasticity(model)
+
 # pseudo R2
 library(MuMIn)
 r.squaredGLMM(model)
@@ -2906,6 +2963,19 @@ model.infl <- influence(model, "code/upn/child/etc")  # computationally intensiv
 without.int <- exclude.influence(model, grouping = "group", level = "level")
 summary(model)
 summary(without.int)
+```
+
+Note that if you're using `glmer` for logistic mixed effects regression:
+```{r}
+#| eval: false
+
+gmodel = glmer(outcome ~ predictor1 + predictor2 + (1 | subject), 
+            na.action = na.omit, 
+            family = binomial,
+            control = glmerControl(optimizer = "bobyqa"), 
+            data=data)
+
+broom.mixed::tidy(gmodel, exponentiate = T)
 ```
 
 
