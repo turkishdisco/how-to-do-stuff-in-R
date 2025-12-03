@@ -1,6 +1,6 @@
 ---
 title: "How to do stuff in R"
-date: last-modified
+date: now
 date-format: "[Last updated:] DD/MM/YYYY HH:mm"
 format:
   html:
@@ -2220,7 +2220,7 @@ quarto_render(input = "notebook.qmd",
 
 
 # Create Excel workbook
-Use the `openxlsx` package to export various objects, dataframes, or outputs to an Excel file with multiple worksheets.
+Use the `openxlsx` package to export various objects, dataframes, or outputs to an Excel file with multiple worksheets. Also have a look at [`openxlsx2](https://janmarvin.github.io/openxlsx2/). 
 ```{r}
 library(openxlsx)
 
