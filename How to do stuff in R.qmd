@@ -58,7 +58,8 @@ p_load(
   pwrss,
   MatchIt,
   optmatch,
-  marginaleffects)
+  marginaleffects,
+  mice)
 ```
 
 # Packages {#sec-packages}
@@ -3066,7 +3067,7 @@ fa_data %>% summarise(across(everything(), ~sum(is.na(.) / n())))
 # derive correlation matrix
 cor_mat <- cor(fa_data)
 
-# assumptions ----
+# assumptions
 psych::KMO(cor_mat)
 # overall MSA = 0.88
 
@@ -3151,7 +3152,7 @@ The first step is to check initial covariate imbalance. The code below uses logi
 ```{r}
 #| eval: true
 
-m.out0 <- matchit(treat ~ age + educ + race + married + 
+m.out0 = matchit(treat ~ age + educ + race + married + 
                     nodegree + re74 + re75,
                   data = lalonde,
                   method = NULL,
@@ -3164,7 +3165,7 @@ The next step is to perform matching. There are different options available (usi
 
 ```{r}
 #| eval: true
-m.out1 <- matchit(treat ~ age + educ + race + married + 
+m.out1 = matchit(treat ~ age + educ + race + married + 
                     nodegree + re74 + re75,
                   data = lalonde,
                   method = "nearest",
@@ -3185,7 +3186,7 @@ plot(m.out1, type = "density", interactive = FALSE,
 Try a different matching method to improve balance[^Other methods include optimal, full, quick, genetic, exact, cem, and caliper; see here: [https://cran.r-project.org/web//packages//MatchIt/vignettes/matching-methods.html](https://cran.r-project.org/web//packages//MatchIt/vignettes/matching-methods.html). The below uses "full" matching whereby every treated unit is matched to at least one control, and every control unit to at least one treatment. Also change the link function to "probit" (why?). Note that this requires the `optmatch` package.
 ```{r}
 #| eval: true
-m.out2 <- matchit(treat ~ age + educ + race + married + 
+m.out2 = matchit(treat ~ age + educ + race + married + 
                     nodegree + re74 + re75,
                   data = lalonde,
                   method = "full",
@@ -3201,10 +3202,11 @@ This is a much better result. Visualise with a Love plot:
 
 plot(summary(m.out2))
 ```
+
 To extract the raw matched data:
 ```{r}
 #| eval: true
-m.data <- match_data(m.out2)
+m.data = match_data(m.out2)
 
 head(m.data)
 ```
@@ -3213,7 +3215,7 @@ We can now proceed to analyse the data using standard regression or other techni
 
 ```{r}
 #| eval: true
-fit <- lm(re78 ~ treat * (age + educ + race + married +
+fit = lm(re78 ~ treat * (age + educ + race + married +
                             nodegree + re74 + re75),
           data = m.data,
           weights = weights)
@@ -3222,5 +3224,47 @@ avg_comparisons(fit,
                 variables = "treat",
                 vcov = ~subclass,
                 newdata = subset(treat == 1))
+```
+
+
+## Missing data imputation
+Use the `mice` package to impute missing values (note: should only be used for predictor variables, and not outcomes).The general process is to explore patterns of missing data first, then decide what you want to impute. If you choose, for example, 5 iterations, then you will get back 5 imputed datasets. The intention is then to conduct your analysis on all 5 of these datasets and pool the estimates. NOTE: although you can extract any one of the imputed, complete datasets, there is no way to combine estimates from across the imputed datasets, because this is not the intention of the package. 
+
+```{r}
+#| eval: true
+library(mice)
+
+data(airquality)
+mice::md.pattern(airquality, rotate.names = T)
+
+# impute data -
+# creates a 'mids' object with however many imputed datasets you specify in m:
+imputed_data = mice(
+  airquality,
+  m = 5,             # Number of imputed datasets
+  maxit = 10,        # Number of iterations
+  method = 'pmm',    # Imputation method
+  seed = 500         # Random seed for reproducibility
+)
+
+# diagnostics
+summary(imputed_data)
+
+# plots - observed in blue, imputed in red
+densityplot(imputed_data)
+xyplot(imputed_data, Ozone ~ Wind+Temp+Solar.R,pch=18,cex=1)
+stripplot(imputed_data, pch = 20, cex = 1.2)
+
+
+# conduct analysis and pool estimates:
+fit = with(data = imputed_data,
+       exp = lm(Ozone ~ Solar.R + Month))
+
+summary(pool(fit))
+
+# get a complete dataset using values from either of the imputed datasets
+complete_data = mice::complete(imputed_data, action = 1)
+# note: use action= "long" to add estimates from all imputed datasets
+# (results in longer data and doesn't actually combine estimates)
 ```
 
