@@ -221,7 +221,6 @@ phonics_c1_y1_2122 = phonics %>%
 # alternative method to read in all data from a table:
 my_tbl = tbl(con, sql("select * FROM [PDR].[Tier1].[Phonics_MasterView]") )
 
-
 # Use SQL directly
 # Read in entire table
 df = odbc::dbGetQuery(
@@ -288,6 +287,49 @@ LEFT JOIN (
 ) AS subject
 ON result.MAPPING = subject.DISCCODE;"
 )
+```
+
+
+Using lazy tables
+```{r}
+library(odbc)
+con = dbConnect(odbc(), Driver = "ODBC Driver 17 for SQL Server", 
+                 Server = "T1PRMDRSQL\\SQLPROD,55842", 
+                 Trusted_Connection = "yes")
+
+# Can get data by sending a SQL query as a string
+
+dbGetQuery(con,"select AcademicYear, count(*) as count
+           from PDR.Tier1.CensusSchools_MasterView 
+           group by AcademicYear")
+
+# using dbplyr instead
+library(dbplyr)
+# create a lazy table. Contains no data, but does have col names and can be
+# manipulated with dplyr commands
+pdr_lazy = tbl(con, in_schema(sql("PDR.Tier1"), 
+                                sql("CensusSchools_MasterView")))
+colnames(pdr_lazy)
+
+# still has no data...
+ym_summary = pdr_lazy %>%
+  group_by(AcademicYear) %>%
+  summarise(n = n())
+
+# but has updated the column names
+colnames(ym_summary)
+
+# can output this lazy table (just a list, not a df)
+ym_summary
+
+# or can collect it and make an actual df:
+ym_summary_df = ym_summary %>% collect()
+
+# longer example - note lack of brackets on collect
+pdr_lazy %>%
+  filter(AcademicYear == 202425) %>%
+  summarise(across(starts_with("Highest"), ~mean(as.numeric(.), na.rm=T))) %>%
+  collect
 ```
 
 
@@ -910,19 +952,22 @@ iris %>%  mutate(across(where(is.numeric), \(x) round(x, 0)))
 
 # create a flag across cols 2 to 7 - 1 if cells are non-NA and 0 if they are NA
 df %>% mutate(any_grade = if_else(rowSums(!is.na(across(2:7))) > 0, 1, 0))
+```
 
+Some examples of `dplyr::c_across`
+```{r}
 # use c_across to calculate figures across multiple columns. It's designed to be used with rowwise().
 df %>%
   rowwise() %>%
   mutate(sum = sum(c_across(w:z)),
-         sd = sd(c_across(w:z)))
+         sd = sd(c_across(w:z))) %>%
+  ungroup()
 
 # NOTE! if you're using named columns, you need to wrap these in c():
 df %>%
   rowwise() %>%
   mutate(mfl_count = sum(c_across(c(french, spanish, german)))) %>%
   ungroup()
-
 
 # create a flag to indicate whether values in a set of columns are identical
 df %>%
@@ -933,6 +978,22 @@ df %>%
 # tip: if you want to select column names using regex, e.g. select c1, c2, c3...
 df %>% mutate(c_sum = sum(c_across(matches("^c\\d+$")), na.rm = TRUE))
 ```
+
+Some other examples
+```{r}
+#| eval: true
+# use the .names function to change output column names
+iris %>%
+  group_by(Species) %>%
+  summarise(across(starts_with("Petal"), max, .names = "{col}_max"))
+
+# as above but add in a calculation to get the mean difference
+iris %>% 
+  group_by(Species) %>%
+  summarise(across(ends_with("Length"), ~ mean(get(cur_column()) - get(gsub("Length", "Width", cur_column()))), 
+                   .names = "{col}_meandiff"))
+``` 
+
 
 ### Creating quantiles
 ```{r}
