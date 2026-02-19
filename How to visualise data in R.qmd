@@ -385,6 +385,33 @@ palmerpenguins::penguins %>%
   )
 ```
 
+It's also possible to add labels to boxplots showing the different quartiles.
+```{r}
+#| fig-height: 4
+#| fig-width: 6
+
+palmerpenguins::penguins %>%
+  ggplot(aes(x = species, y = bill_length_mm)) +
+  # this part produces just the I-shaped lines
+  stat_boxplot(
+    geom ='errorbar', 
+    width = 0.5) +
+  # this part produces the boxes
+  geom_boxplot(
+    notch = F,
+    outlier.color = "red",
+    outlier.size = 2.5
+  ) +
+  stat_summary(
+    aes(label = sprintf("%0.2f", ..y..)),
+    geom = "text",
+    fun = function(y) boxplot.stats(y)$stats,
+    position = position_nudge(x = 0.5, y = 0.006), # raised data labels up as they were not legible on top of the boxplot itself
+    #position = position_nudge(x = 0.1, y = 0.006),
+    size = 3)
+```
+
+
 ## Violin plot
 A more sophisticated version of a boxplot using density curves to show the distribution for the entire range of values. 
 ```{r}
@@ -393,7 +420,8 @@ A more sophisticated version of a boxplot using density curves to show the distr
 palmerpenguins::penguins %>%
   ggplot(aes(x = species, y = bill_length_mm)) +
   geom_violin(aes(fill = species),
-              draw_quantiles = c(0.5)) # specify 0.5 for median
+              quantiles = c(0.5),
+              quantile.linetype = 1)
 ```
 
 ## Dotplot
@@ -983,14 +1011,14 @@ Clipping determines whether to display elements that would lie outside the plot 
 ggplot(mtcars, aes(wt, mpg)) +
   geom_point(size = 2) +
   # zero expansion
-  coord_cartesian(expand = 0,
+  coord_cartesian(expand = F,
                   clip = "off") +
   ggtitle("Clipping off")
 
 ggplot(mtcars, aes(wt, mpg)) +
   geom_point(size = 2) +
   # zero expansion
-  coord_cartesian(expand = 0,
+  coord_cartesian(expand = T,
                   clip = "on") +
   ggtitle("Clipping on")
 ```
@@ -1729,7 +1757,7 @@ palmerpenguins::penguins %>%
   theme_bw()
 ```
 
-To facet by two variables, use `facet_grid`
+To facet by two variables, use `facet_grid`. Note that you can automate this by providing a factor or grouping variable, e.g. `facet_grid(rows = vars(group))`. 
 ```{r}
 #| fig-height: 5
 #| fig-width: 6
