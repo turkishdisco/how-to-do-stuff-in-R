@@ -539,6 +539,13 @@ airquality[rowSums(is.na(airquality)) != ncol(airquality), ]
 ```
 
 
+## Convert rownames to column names
+```{r}
+df = df %>% 
+  rownames_to_column(var = "predictor")
+```
+
+
 ## Wide to long format
 This is a very common data wrangling task. The recipe below converts `starwars` to long-format to easily compute summary statistics. Firstly use `pivot_longer()`:
 ```{r}
@@ -2155,7 +2162,8 @@ mpg %>%
       all_categorical() ~ "{n} / {N} ({p}%)"   # can just have {n} if preferred
     ),
     digits = all_continuous() ~ 2,
-    missing = "no" # whether to include missing values in separate rows
+    missing = "no", # whether to include missing values in separate rows
+    percent = "row", #or 'column'
   ) %>% 
   modify_caption("<div style='text-align: left; font-weight: bold;'> Table 1</div>")
 
@@ -2820,6 +2828,9 @@ summary(model)
 
 # for logistic regression
 model = glm(Survived ~ Pclass, data = titanic::titanic_train, family = binomial(link = "logit"))
+
+# to extract p-values
+coef(summary(model))[,4]
 ```
 
 Alternatively, use `broom` to get tidy model output
@@ -2843,6 +2854,7 @@ m = glm(Survived ~ Pclass + Sex + Age, data = titanic::titanic_train, family = b
 
 # note:
 # change show_single_row = c("Sex") to collapse this to a single row
+# will need to install broom.helpers
 
 m %>%
   gtsummary::tbl_regression(
@@ -2930,6 +2942,34 @@ car::influencePlot(model, id.method="identify", main="Influence Plot",
 # Observations depicted by large circles may have disproportionate influence on the 
 # parameters estimates of the model.
 ```
+
+## Cluster-robust standard errors
+To account for clustering in the data (not to model it specifically), you can apply cluster-robust standard errors after White (1984). 
+
+```{r}
+#| eval: false
+# fit your model as usual, e.g. with lm() or glm()
+
+library(sandwich)
+library(lmtest)
+# obtain cluster-robust errors with clustering specified
+vcov_cluster <- sandwich::vcovCL(model, cluster = ~ school_id)
+
+# Coefficient table with clustered SEs
+lmtest::coeftest(model, vcov = vcov_cluster)
+
+# alternatively use fixest
+# this is very fast but it's not easy to exponentiate when using logistic
+library(fixest)
+# fit model using:
+model = feglm(ks5_any_sci_grade ~ triple_sci_e, data=df, ...,
+               cluster = ~ urn)
+
+summary(model)
+etable(model)
+exp(cbind(`Odds Ratio` = coef(model), confint(model)))
+```
+
 
 ## Linear mixed effects modelling
 ```{r}
