@@ -47,6 +47,7 @@ p_load(
   janitor,
   nycflights13,
   gt,
+  naniar,
   gtsummary,
   cardx,
   titanic,
@@ -58,6 +59,8 @@ p_load(
   pwrss,
   MatchIt,
   optmatch,
+  ggeffects,
+  emmeans,
   marginaleffects,
   mice)
 ```
@@ -132,6 +135,13 @@ Combine with `janitor::clean_names()`
 ```{r}
 df = read_csv("myFile.csv", na = c("")) %>%
   clean_names(case = c("snake", "lower_camel", "upper_camel", ...))
+```
+
+If you need to compare column names across different dataframes, `janitor::compare_df_names(df1, df2, df3)` will give you a list of all the column names and their variable types (or you can just request the mismatches). Alternatively, `janitor::compare_df_cols_same(d1, d2, d3)` will just show you cases where column types differ (not whether columns are missing). 
+
+```{r}
+janitor::compare_df_names(df1, df2, df3,
+                          return = c("all", "match", "mismatch"))
 ```
 
 
@@ -505,6 +515,8 @@ airquality %>%
 # note how 18 has been repeated on line 5 (repeated from above)
 ```
 
+You can also add a `.group` argument to `fill`. And note that it will throw an error if you try to fill a character vector within `mutate` but will work outside of this. I.e. instead of `df %>% mutate(var = fill()...)`, do this: `df %>% fill(...)`. 
+
 
 ### Converting values to NA
 `dplyr::na_if`
@@ -864,6 +876,10 @@ df %>%
 
 df %>%
   filter(if_all(starts_with("x"), ~ !is.na(.)))
+
+# Remove any rows with all NA values
+df %>%
+  filter(!if_all(everything(), is.na))
 ```
 
 
@@ -2149,7 +2165,7 @@ pass_fail %>% left_join(psc_dist, by = "var") %>%
 
 
 ## `gtsummary`
-`gtsummary` builds on `gt` and is used to summarise dataframes, regession models, and more. Its main function is `tbl_summary`. 
+`gtsummary` builds on `gt` and is used to summarise dataframes, regession models, and more. Its main function is `tbl_summary`. **NOTE!!** `gtsummary` creates a conflict with `dplyr::select`. 
 ```{r}
 #| eval: true 
 
@@ -2813,6 +2829,7 @@ iris %>%
 ```
 
 ## Regression
+### Linear regression
 ```{r}
 #| eval: true
 
@@ -2825,20 +2842,19 @@ model = lm(mpg ~ wt * cyl + gear, data = mtcars)
 
 # model output
 summary(model)
+```
 
-# for logistic regression
+### Logistic Regression
+```{r}
+#| eval: true
 model = glm(Survived ~ Pclass, data = titanic::titanic_train, family = binomial(link = "logit"))
 
 # to extract p-values
 coef(summary(model))[,4]
-```
-
-Alternatively, use `broom` to get tidy model output
-```{r}
-#| eval: true
 
 broom::glance(model) # gives r2, AIC/BIC, etc
 
+# Alternatively, use `broom` to get tidy model output
 broom::tidy(model, confint=T, exponentiate = F) # change exponentiate to T to get odds ratios for glms
 
 # nifty little trick to amend rounding
@@ -2846,6 +2862,37 @@ broom::tidy(model) %>%
   mutate(across(where(is.numeric), \(x) round(x, 3))) %>%
 	 rename("coefficient" = "estimate")
 ```
+
+To deal with interaction terms
+```{r}
+#| eval: false
+
+# create model with interaction term
+library(ggeffects)
+data(efc, package = "ggeffects")
+efc = efc
+efc$c161sex = factor(efc$c161sex)
+
+# fit model with interaction
+fit = lm(neg_c_7 ~ c12hour + barthtot * c161sex, data = efc)
+# plot for certain intervals of barthtot - if this was a scaled variable you could
+# do barthtot [-1,0,1] for instance. 
+mydf = ggeffects::predict_response(fit, terms = c("barthtot [30,50,70]", "c161sex"))
+mydf
+plot(mydf)
+
+# note that sJplot produces exactly the same thing
+# sjPlot::plot_model(fit, type = "pred", terms = c("barthtot [30,50,70]", "c161sex")) +
+#   scale_x_continuous(breaks = c(30,50,70)) +
+#   ggtitle("Predicted probabilities")
+```
+
+You can also look at estimated marginal means, but this is something different. I think this differs from `plot_predictions` in restricting predictors to zero/reference levels, rather than reflecting the distributions present in the data itself.
+```{r}
+emmeans::emmeans(fit, ~ barthtot | c161sex,
+                 at = list(att8 = c(30,50,70)), type = "response")
+```
+
 
 Another option is to use `gtsummary`
 ```{r}
@@ -2870,10 +2917,29 @@ m %>%
 
 ```
 
+#### Average marginal effects
+Average marginal effects (AMEs) have been suggested as an alternative to odds ratios. They represent the change in the probability of an event occurring, controlling for other covariates. In other words, an AME tells you the percentage point change in the probability of an outcome thanks to a particular predictor. I think their advantage is that they can be used when the aim is to compare across different models. 
+```{r}
+
+# use the margins package
+library(margins)
+
+# run your glm model as usual
+# then run margins::margins
+ame = margins::margins(model)
+summary(ame)
+# will provide AMEs (percentages) for each covariate along with SE, z, P, and 95% CI. 
+
+# if using sandwich SEs, estimate vcov first, then feed in to margins:
+cov_cluster = sandwich::vcovCL(model, cluster = ~ group)
+model_cluster_ame = margins::margins(model, vcov = vcov_cluster)
+```
+
+
 
 Other model outputs and diagnostics
 ```{r}
-coefficients(model)
+coefficients(model) 
 confint(model)
 residuals(model)
 ```
