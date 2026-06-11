@@ -7,8 +7,8 @@ format:
     standalone: true
     embed-resources: true
     toc: true
-    toc-depth: 3
-    toc-expand: 1
+    toc-depth: 2
+    toc-expand: 3
     number-sections: true
     toc-location: left
     html-table-processing: none
@@ -137,12 +137,6 @@ df = read_csv("myFile.csv", na = c("")) %>%
   clean_names(case = c("snake", "lower_camel", "upper_camel", ...))
 ```
 
-If you need to compare column names across different dataframes, `janitor::compare_df_names(df1, df2, df3)` will give you a list of all the column names and their variable types (or you can just request the mismatches). Alternatively, `janitor::compare_df_cols_same(d1, d2, d3)` will just show you cases where column types differ (not whether columns are missing). 
-
-```{r}
-janitor::compare_df_names(df1, df2, df3,
-                          return = c("all", "match", "mismatch"))
-```
 
 
 Alternative file types
@@ -1248,8 +1242,17 @@ lapply(form_list, function(x)
 ```
 
 # Selecting
-Use `dplyr::select()` to select columns by name, index, or type. 
+Use `dplyr::select()` to select columns by name, index, or type. Note that although `across()` is used to select columns, it is only used when applying some function to these columns, not merely to create a subset of a dataframe with them. 
 ```{r}
+
+# select columns using names
+starwars %>% select(name, height, mass, eye_color)
+
+# select columns using indices
+starwars %>% select(1:3, 6)
+
+# select columns to REMOVE
+starwars %>% select(-c(name, height, mass, eye_color))
 
 # by type
 starwars %>% select(where(is.numeric))
@@ -1261,6 +1264,39 @@ col_list = c("name", "height", "mass")
 
 starwars_subset = subset(starwars, select = names(starwars) %in% col_list)
 head(starwars_subset)
+```
+
+
+# Other cleaning functions
+The `janitor` package is an excellent resource for data cleaning. 
+
+```{r}
+# compare column names and types across dataframes
+janitor::compare_df_cols(d1, d2, d3, return = c("all", "mismatch", "match")) 
+
+# clean variable names
+# can use different cases:
+# - snake (default): variable_name
+# - title: `Variable Name` (will introduce spaces)
+# - upper_camel: VariableName
+# - lower_camel: variableName
+# - all_caps: VARIABLE_NAME
+janitor::clean_names(df, case = "snake")
+
+# remove rows or cols with all empty values
+janitor::remove_empty(df, which = c("cols", "rows"))
+
+# rounding half up
+df %>% mutate(var = janitor::round_half_up(var, digits = 1))
+```
+
+Removing whitespace can also prevent issues later down the line.
+```{r}
+# other functions
+# trim whitespace
+
+string = " contains whitespace "
+stringr::str_trim(string, side = "both")
 ```
 
 
@@ -1578,7 +1614,15 @@ df %>%
   mutate(date_col = as.numeric(date_col)) %>%
   mutate(date_col = lubridate::as_date(date_col, 
                                        origin = "1899-12-30",
-                                       format = "%d-%m-%Y")
+                                       format = "%d-%m-%Y"))
+         
+# for Excel numeric dates:
+excel_date = 41103
+janitor::excel_numeric_to_date(excel_date, include_time = F)
+
+# for mixed numeric and character dates
+excel_mixed = c(41103, "2020/02/29")
+janitor::convert_to_date(excel_mixed)
 ```
 
 
@@ -1753,6 +1797,32 @@ char_graph = function(df, outcome, char){
     ...
 }}
 ```
+
+
+Example of a function that compares missingness in a column across a list of dataframes. It uses a different method to above to capture the name of each dataframe in the list. 
+```{r}
+compare = function(col, ...){
+  
+  # make a list of input dataframes
+  dfs = list(...)
+  
+  # capture df names for outputting
+  data_drop <- as.character(match.call())[-c(1, 2)]
+  
+  # count
+  n = sapply(dfs, function(df){nrow(df)})
+  miss = sapply(dfs, function(df){sum(is.na(df[[col]]))})
+  
+  data.frame(data_drop, col, n, miss) %>%
+    mutate(pc = miss / n)
+}
+
+# combine 
+bind_rows(compare("upn", d1, d2, d3, d4),
+          compare("dob", d1, d2, d3, d4),
+          compare("school_name", d1, d2, d3, d4)
+```
+
 
 
 ## Exporting to the global environment 
