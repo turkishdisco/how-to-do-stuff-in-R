@@ -2458,7 +2458,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">Last updated: 17/06/2026 09:27</p>
+      <p class="date">Last updated: 17/06/2026 09:29</p>
     </div>
   </div>
   
@@ -2469,7 +2469,104 @@ window.Quarto = {
 
 </header>
 
-
+<nav id="TOC-body" role="doc-toc">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#sec-packages" id="toc-sec-packages"><span class="header-section-number">1</span> Packages</a>
+  <ul>
+  <li><a href="#installing-packages" id="toc-installing-packages"><span class="header-section-number">1.1</span> Installing packages</a></li>
+  <li><a href="#updating-packages" id="toc-updating-packages"><span class="header-section-number">1.2</span> Updating packages</a></li>
+  </ul></li>
+  <li><a href="#read-data" id="toc-read-data"><span class="header-section-number">2</span> Read data</a>
+  <ul>
+  <li><a href="#read-from-local-storage" id="toc-read-from-local-storage"><span class="header-section-number">2.1</span> Read from local storage</a></li>
+  <li><a href="#read-in-from-a-database" id="toc-read-in-from-a-database"><span class="header-section-number">2.2</span> Read in from a database</a></li>
+  <li><a href="#data-validation" id="toc-data-validation"><span class="header-section-number">2.3</span> Data validation</a></li>
+  <li><a href="#interrogating-data" id="toc-interrogating-data"><span class="header-section-number">2.4</span> Interrogating data</a></li>
+  <li><a href="#other-validation" id="toc-other-validation"><span class="header-section-number">2.5</span> Other validation</a></li>
+  <li><a href="#write-data" id="toc-write-data"><span class="header-section-number">2.6</span> Write data</a></li>
+  </ul></li>
+  <li><a href="#wrangling" id="toc-wrangling"><span class="header-section-number">3</span> Wrangling</a>
+  <ul>
+  <li><a href="#na-values" id="toc-na-values"><span class="header-section-number">3.1</span> NA values</a></li>
+  <li><a href="#convert-rownames-to-column-names" id="toc-convert-rownames-to-column-names"><span class="header-section-number">3.2</span> Convert rownames to column names</a></li>
+  <li><a href="#wide-to-long-format" id="toc-wide-to-long-format"><span class="header-section-number">3.3</span> Wide to long format</a></li>
+  <li><a href="#long-to-wide-format" id="toc-long-to-wide-format"><span class="header-section-number">3.4</span> Long to wide format</a></li>
+  <li><a href="#separate-and-unnest" id="toc-separate-and-unnest"><span class="header-section-number">3.5</span> Separate and unnest</a></li>
+  <li><a href="#unite" id="toc-unite"><span class="header-section-number">3.6</span> Unite</a></li>
+  <li><a href="#coalesce" id="toc-coalesce"><span class="header-section-number">3.7</span> Coalesce</a></li>
+  <li><a href="#filter-and-other-rowwise-functions" id="toc-filter-and-other-rowwise-functions"><span class="header-section-number">3.8</span> Filter and other rowwise functions</a></li>
+  <li><a href="#deriving-new-variables" id="toc-deriving-new-variables"><span class="header-section-number">3.9</span> Deriving new variables</a></li>
+  <li><a href="#changing-variables" id="toc-changing-variables"><span class="header-section-number">3.10</span> Changing variables</a></li>
+  <li><a href="#joining" id="toc-joining"><span class="header-section-number">3.11</span> Joining</a></li>
+  <li><a href="#splitting-a-list-of-dataframes" id="toc-splitting-a-list-of-dataframes"><span class="header-section-number">3.12</span> Splitting a list of dataframes</a></li>
+  </ul></li>
+  <li><a href="#selecting" id="toc-selecting"><span class="header-section-number">4</span> Selecting</a></li>
+  <li><a href="#other-cleaning-functions" id="toc-other-cleaning-functions"><span class="header-section-number">5</span> Other cleaning functions</a></li>
+  <li><a href="#working-with-strings" id="toc-working-with-strings"><span class="header-section-number">6</span> Working with strings</a>
+  <ul>
+  <li><a href="#detect-strings" id="toc-detect-strings"><span class="header-section-number">6.1</span> Detect strings</a></li>
+  <li><a href="#replace-strings" id="toc-replace-strings"><span class="header-section-number">6.2</span> Replace strings</a></li>
+  <li><a href="#tidy-up-strings" id="toc-tidy-up-strings"><span class="header-section-number">6.3</span> Tidy up strings</a></li>
+  <li><a href="#subset-strings" id="toc-subset-strings"><span class="header-section-number">6.4</span> Subset strings</a></li>
+  <li><a href="#regular-expressions" id="toc-regular-expressions"><span class="header-section-number">6.5</span> Regular expressions</a></li>
+  </ul></li>
+  <li><a href="#generating-and-sampling-random-data" id="toc-generating-and-sampling-random-data"><span class="header-section-number">7</span> Generating and sampling random data</a>
+  <ul>
+  <li><a href="#generate-strings" id="toc-generate-strings"><span class="header-section-number">7.1</span> Generate strings</a></li>
+  <li><a href="#generate-numbers" id="toc-generate-numbers"><span class="header-section-number">7.2</span> Generate numbers</a></li>
+  </ul></li>
+  <li><a href="#dates-and-times" id="toc-dates-and-times"><span class="header-section-number">8</span> Dates and times</a></li>
+  <li><a href="#summarising" id="toc-summarising"><span class="header-section-number">9</span> Summarising</a>
+  <ul>
+  <li><a href="#crosstabulation" id="toc-crosstabulation"><span class="header-section-number">9.1</span> Crosstabulation</a></li>
+  </ul></li>
+  <li><a href="#iterationfor-loops" id="toc-iterationfor-loops"><span class="header-section-number">10</span> Iteration/for loops</a></li>
+  <li><a href="#functions" id="toc-functions"><span class="header-section-number">11</span> Functions</a>
+  <ul>
+  <li><a href="#error-handling-using-stop" id="toc-error-handling-using-stop"><span class="header-section-number">11.1</span> Error handling using <code>stop</code></a></li>
+  <li><a href="#extract-arguments-using-substitute-and-deparse" id="toc-extract-arguments-using-substitute-and-deparse"><span class="header-section-number">11.2</span> Extract arguments using <code>substitute</code> and <code>deparse</code></a></li>
+  <li><a href="#exporting-to-the-global-environment" id="toc-exporting-to-the-global-environment"><span class="header-section-number">11.3</span> Exporting to the global environment</a></li>
+  <li><a href="#tidy-evaluation" id="toc-tidy-evaluation"><span class="header-section-number">11.4</span> Tidy evaluation</a></li>
+  <li><a href="#nifty-functions-for-various-tasks" id="toc-nifty-functions-for-various-tasks"><span class="header-section-number">11.5</span> Nifty functions for various tasks</a></li>
+  </ul></li>
+  <li><a href="#text-analysis" id="toc-text-analysis"><span class="header-section-number">12</span> Text analysis</a></li>
+  <li><a href="#presentation" id="toc-presentation"><span class="header-section-number">13</span> Presentation</a>
+  <ul>
+  <li><a href="#gt-package" id="toc-gt-package"><span class="header-section-number">13.1</span> <code>gt</code> package</a></li>
+  <li><a href="#gtsummary" id="toc-gtsummary"><span class="header-section-number">13.2</span> <code>gtsummary</code></a></li>
+  <li><a href="#quarto-documents" id="toc-quarto-documents"><span class="header-section-number">13.3</span> Quarto documents</a></li>
+  </ul></li>
+  <li><a href="#create-excel-workbook" id="toc-create-excel-workbook"><span class="header-section-number">14</span> Create Excel workbook</a></li>
+  <li><a href="#odds-and-ends" id="toc-odds-and-ends"><span class="header-section-number">15</span> Odds and ends</a>
+  <ul>
+  <li><a href="#lagged-variables" id="toc-lagged-variables"><span class="header-section-number">15.1</span> Lagged variables</a></li>
+  <li><a href="#cumulative-sum" id="toc-cumulative-sum"><span class="header-section-number">15.2</span> Cumulative sum</a></li>
+  <li><a href="#rounding-and-leading-zeroes" id="toc-rounding-and-leading-zeroes"><span class="header-section-number">15.3</span> Rounding and leading zeroes</a></li>
+  <li><a href="#encoding" id="toc-encoding"><span class="header-section-number">15.4</span> Encoding</a></li>
+  <li><a href="#calculate-the-mode" id="toc-calculate-the-mode"><span class="header-section-number">15.5</span> Calculate the mode</a></li>
+  <li><a href="#using-rep-for-dummy-variables" id="toc-using-rep-for-dummy-variables"><span class="header-section-number">15.6</span> Using <code>rep</code> for dummy variables</a></li>
+  </ul></li>
+  <li><a href="#web-scraping" id="toc-web-scraping"><span class="header-section-number">16</span> Web scraping</a></li>
+  <li><a href="#statistical-tests" id="toc-statistical-tests"><span class="header-section-number">17</span> Statistical tests</a>
+  <ul>
+  <li><a href="#chi-square" id="toc-chi-square"><span class="header-section-number">17.1</span> Chi-square</a></li>
+  <li><a href="#correlation" id="toc-correlation"><span class="header-section-number">17.2</span> Correlation</a></li>
+  <li><a href="#t-test" id="toc-t-test"><span class="header-section-number">17.3</span> T-test</a></li>
+  <li><a href="#effect-size" id="toc-effect-size"><span class="header-section-number">17.4</span> Effect size</a></li>
+  <li><a href="#regression" id="toc-regression"><span class="header-section-number">17.5</span> Regression</a></li>
+  <li><a href="#cluster-robust-standard-errors" id="toc-cluster-robust-standard-errors"><span class="header-section-number">17.6</span> Cluster-robust standard errors</a></li>
+  <li><a href="#linear-mixed-effects-modelling" id="toc-linear-mixed-effects-modelling"><span class="header-section-number">17.7</span> Linear mixed effects modelling</a></li>
+  <li><a href="#quantile-regression" id="toc-quantile-regression"><span class="header-section-number">17.8</span> Quantile regression</a></li>
+  <li><a href="#moderation-and-mediation" id="toc-moderation-and-mediation"><span class="header-section-number">17.9</span> Moderation and Mediation</a></li>
+  <li><a href="#principal-components-factor-analysis" id="toc-principal-components-factor-analysis"><span class="header-section-number">17.10</span> Principal components / factor analysis</a></li>
+  <li><a href="#statistical-power" id="toc-statistical-power"><span class="header-section-number">17.11</span> Statistical power</a></li>
+  <li><a href="#propensity-score-matching-psm" id="toc-propensity-score-matching-psm"><span class="header-section-number">17.12</span> Propensity Score Matching (PSM)</a></li>
+  <li><a href="#missing-data-imputation" id="toc-missing-data-imputation"><span class="header-section-number">17.13</span> Missing data imputation</a></li>
+  </ul></li>
+  </ul>
+</nav>
 <p>A compendium of useful code snippets and recipes for wrangling and analysis in R.</p>
 <p>Notes:</p>
 <ul>
