@@ -8,7 +8,7 @@ format:
     embed-resources: true
     toc: true
     toc-depth: 2
-    toc-expand: 3
+    toc-expand: 1
     number-sections: true
     toc-location: left
     html-table-processing: none
