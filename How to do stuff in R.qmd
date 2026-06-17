@@ -3223,6 +3223,36 @@ library(quantreg)
 m1 = rq(dv ~ iv, tau=c(.05, .25, .5, .75, .95), data=df)
 ```
 
+
+## Moderation and Mediation
+
+### Moderation
+Moderation is about the degree to which a relationship between two variables $X$ and $Y$ differs according to the value or level of a third variable $Z$. It assumes that the effect of $X$ on $Y$ changes by a constant amount (i.e. a linear relationship) as the value of $Z$ changes. Moderation is useful for questions like "does this relationship hold true for everyone in the sample?" or "does this effect depend on $Z$?" It's mathematically identical to an interaction but with a slightly different interpretation. 
+
+```{r}
+# use lm()
+
+mod1 = lm(Y ~ X*Z, data = df)
+
+# check for significant interaction term - this is interpreted as the difference
+# in the relationship between X and Z on the outcome, not the direct effect on
+# the outcome itself
+
+# visualise interaction term
+interactions::interact_plot(mod1, "X", modx = "Z",
+                            modx.labels = c("1", "2"),
+                            legend.main = "Z",
+                            y.label = "Y",
+                            x.label = "X")
+
+# the above will also work for continuous predictors, showing -1, 0, and +1 SD
+```
+
+
+### Mediation
+Mediation analysis answers the question of whether the effect of a predictor on an outcome is *explained* by an intermediary variable. 
+
+
 ## Principal components / factor analysis
 ```{r}
 # Can use PCA as a precursor to factor analysis (covered below), i.e. to choose # of factors
