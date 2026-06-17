@@ -8,7 +8,7 @@ format:
     embed-resources: true
     toc: true
     toc-depth: 2
-    toc-expand: 1
+    toc-expand: 2
     number-sections: true
     toc-location: left
     html-table-processing: none
@@ -42,7 +42,7 @@ Notes:
 
 library(pacman)
 
-p_load(
+pacman::p_load(
   tidyverse,
   janitor,
   nycflights13,
@@ -62,6 +62,7 @@ p_load(
   ggeffects,
   emmeans,
   marginaleffects,
+  interactions,
   mice)
 ```
 
@@ -3250,7 +3251,39 @@ interactions::interact_plot(mod1, "X", modx = "Z",
 
 
 ### Mediation
-Mediation analysis answers the question of whether the effect of a predictor on an outcome is *explained* by an intermediary variable. 
+While moderation is more descriptive, mediation takes an explanatory approach by trying to answer the question of whether the effect of a predictor on an outcome is *explained* by an intermediary variable. Mediation can be _total_ or _partial_ depending to what extent a mediator $M$ explains the relationship between $X$ and $Y$ (see Baron & Kenny, 1986). 
+
+```{r}
+#| eval: true
+
+# example from a study in which unemployed people received intervention to improve
+# their mental health and job prospects
+library(mediation)
+
+data = mediation::jobs
+
+b <- lm(job_seek ~ treat, data) # x predicts the mediator
+c <- lm(depress2 ~ treat + job_seek, data) # x and m predict the outcome.
+
+mediation <- mediate(b, # Mediator model
+                     c, # Outcome model
+                     sims = 1000, # Number of bootstrap samples
+                     boot = T, # Ask for bootstrapped confidence intervals
+                     treat = "treat", # Name of the x variable
+                     mediator = "job_seek" # Name of the m variable
+                    )
+
+summary(mediation)
+
+# interpretation:
+# - ADE: Average Direct Effect (c')
+# - ACME: Average Causal Mediation Effects (indirect effect going through m; a*b)
+# - Total Effect: The sum of ACME and ADE (equal to c = c' + a*b)
+# - Prop. Mediated: Proportion of the indirect to the total effect (a*b/c)
+
+plot(mediation)
+```
+
 
 
 ## Principal components / factor analysis
