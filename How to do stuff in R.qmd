@@ -10,7 +10,7 @@ format:
     toc-depth: 2
     toc-expand: 1
     number-sections: true
-    toc-location: left-body
+    toc-location: right-body
     html-table-processing: none
     df-print: kable
     code-fold: false
