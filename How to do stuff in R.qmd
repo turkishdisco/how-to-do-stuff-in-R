@@ -147,6 +147,17 @@ names(lst) = sheets
 list2env(lst, envir = .GlobalEnv)
 ```
 
+## Read in a list of files
+```{r}
+files = list.files(path = "path",
+                   pattern = "*.csv",
+                   full.names = T)
+
+df = sapply(files, read_csv, simplify=F) %>%
+  bind_rows()
+```
+
+
 Combine with `janitor::clean_names()`
 ```{r}
 df = read_csv("myFile.csv", na = c("")) %>%
@@ -155,7 +166,7 @@ df = read_csv("myFile.csv", na = c("")) %>%
 
 
 
-Alternative file types
+## Alternative file types
 ```{r}
 # SPSS (.sav)
 df = haven::read_sav("myFile.sav")
@@ -481,6 +492,9 @@ write.csv(df, "fileName", row.names = F)
 readr::write_csv(df, "fileName", delim = ",", na = "")
 
 readr::write_delim(df, "fileName", delim = "|", na = "")
+
+# write an .xlsx file where each hub gets its own worksheet
+write_xlsx(split(df, ~ hub), "output.xlsx")
 
 # fst:
 write.fst(df, "fileName.fst")
@@ -1357,6 +1371,37 @@ df %>% mutate(review_check = case_when(
   str_detect(Review, "[a-zA-Z][0-2]") & (mark_change + outcome_change) > 0 ~ "Error"))
 ```
 
+Find text between two other strings
+```{r}
+#| eval: true
+# extract hub name ("Arch")
+string = "data - Arch.xlsx"
+gsub(".*data - (.+).xlsx.*", "\\1", string)
+
+# if you had a list of names and just wanted a simple character vector (without
+# columns for named attributes), use unname
+files = c("data - Arch.xlsx", "data - Burley Woodhead.xlsx", 
+          "data - Childer Thornton.xlsx")
+
+names = unname(
+  vapply(files, function(x) 
+    gsub(".*data - (.+).xlsx.*", "\\1", x), 
+    character(1)))
+
+names
+```
+
+Find text between the beginning of a string and a certain character
+```{r}
+#| eval: true
+gsub("(.*?)(-.*)", "\\1", string)
+
+# another example of finding text between two elements
+string2 = "W:/folder1/folder2/File name.xlsx"
+
+gsub(".*folder2\\/(.+?)\\.xlsx.*", "\\1", string2)
+```
+
 
 ## Replace strings
 `str_replace_all` (this replaces all matches - `str_replace` only replaces the first match)
@@ -1788,6 +1833,7 @@ R's in-built `apply` functions are designed to iterate over data structures such
 | `sapply`     | list, vector  | vector    |
 | `vapply`     | list, vector  | vector    | 
 | `mapply`     | vector        | list, vector  | 
+| `Map`        | list, vector  | list       |
 
 
 ### `apply`
@@ -1928,6 +1974,26 @@ actual %>%
     hub, urn, 
     \(h, u) u %in% urn_list$urn[urn_list$hub==h]))
 ```
+
+Example of using `Map`
+```{r}
+# read in a list of .xlsx files but only the sheets corresponding to a named list
+# e.g. files = c("path1 - Arch.xlsx", "path2 - Burley.xlsx"), etc, where 'names'
+# is just c("Arch", "Burley"), etc
+# So the below pairs each file with its matching sheet name and reads that in
+
+dfs = Map(function(file, sheet) {
+  read_excel(file, sheet = sheet)
+}, files, names)
+# (produces a list, unlike mapply)
+
+# make sure the list objects are named...
+names(dfs) = names
+
+# ... so that they can be used as the id as bind_rows
+hubs_long = bind_rows(dfs, .id = "hub")
+```
+
 
 
 ## User-defined functions
