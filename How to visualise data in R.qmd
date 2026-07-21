@@ -8,7 +8,6 @@ format:
     embed-resources: true
     toc: true
     toc-depth: 2
-    toc-expand: 2
     number-sections: true
     toc-location: left
     html-table-processing: none
@@ -645,6 +644,8 @@ mpg %>%
                geom = "errorbar",
                width = .4)
 ```
+
+NOTE that `geom_linerange` doesn't have horizontal hatches at the tops of the bars - for this you need to use `geom_errorbar`, which has a `width` argument to control the length of them. 
 
 Plot the interquartile range (1st to 4th quartiles with median):
 ```{r}
@@ -1319,6 +1320,45 @@ ggplot2::diamonds %>%
   ggplot(aes(x=cut, y=carat)) +
   geom_violin() +
   coord_flip()
+```
+
+## Multiple sources of data
+If you'd like to graph multiple sources of data on the same chart, you need to save this into a separate dataframe. Example: create a time series showing performance on PISA, with red horizontal lines for each year to indicate the study average. This recipe also uses only unique year values for the x-axis (as opposed to regular increments along a scale). 
+```{r}
+# data
+df = data.frame(
+  year = c(2012, 2015, 2018, 2022),
+  lower = c(488, 488, 497, 485),
+  upper = c(500, 497, 507, 493),
+  score = c(494, 492, 502, 489),
+  oecd_avg = c(494, 490, 489, 472)
+)
+
+# 1 - extract unique years for x-axis
+yrs = df %>%
+  pull(year) %>%
+  unique() %>%
+  sort()
+
+# 2 - extract the oecd_avg scores
+avg = df %>%
+  select(year, oecd_avg)
+
+# graph
+df %>%
+   ggplot(aes(x = year, y = score)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.8) +
+  # add average scores
+  geom_segment(
+    data = avg,
+    aes(x = year - 0.4, xend = year + 0.4,
+      y = oecd_avg, yend = oecd_avg),
+    colour = "red", linewidth = 0.8) +
+  # add scales
+  scale_y_continuous(limits = c(460, 540)) +
+  scale_x_continuous(breaks = yrs)
 ```
 
 
