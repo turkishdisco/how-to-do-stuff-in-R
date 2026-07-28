@@ -7,9 +7,9 @@ format:
     standalone: true
     embed-resources: true
     toc: true
+    toc-location: left
     toc-depth: 2
     number-sections: true
-    toc-location: left
     html-table-processing: none
     df-print: kable
     code-fold: false
@@ -140,6 +140,17 @@ ggplot(shapes, aes(x, y)) +
   expand_limits(x = 4.1) +
   theme_void()
 ```
+
+
+### For large datasets
+Use `geom_bin_2d`
+```{r}
+# by default, bins is set at 30. Specifying binwidth will overwrite this.
+ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
+  geom_bin_2d(aes(fill = ..count..),  color = "black") + 
+  scale_fill_gradient(name = "Density", low = "lightgreen", high = "darkgreen")
+```
+
 
 ## Lines
 ```{r}
