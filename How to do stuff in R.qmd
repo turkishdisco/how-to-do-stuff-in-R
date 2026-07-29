@@ -52,6 +52,7 @@ pacman::p_load(
   cardx,
   titanic,
   psych,
+  skimr,
   rstatix,
   ggcorrplot,
   broom,
@@ -59,6 +60,7 @@ pacman::p_load(
   pwrss,
   MatchIt,
   optmatch,
+  mediation,
   ggeffects,
   emmeans,
   marginaleffects,
@@ -379,7 +381,7 @@ Count missing observations across all columns
 #| eval: true
 airquality %>%
   mutate(sum_na = rowSums(is.na(.))) %>%
-  select(Ozone, Solar.R, Wind, sum_na) %>% head()
+  dplyr::select(Ozone, Solar.R, Wind, sum_na) %>% head()
 ```
 
 `naniar` package
@@ -533,10 +535,11 @@ This is useful if you have a value that is only inserted once due to grouping, b
 ```{r}
 #| eval: true
 #| # notice value for row 5 is missing
-airquality %>% select(Ozone) %>% head()
+airquality %>% dplyr::select(Ozone) %>% head()
 
 airquality %>%
-  tidyr::fill(Ozone, .direction = "down") %>% select(Ozone) %>% head()
+  tidyr::fill(Ozone, .direction = "down") %>% 
+  dplyr::select(Ozone) %>% head()
 # note how 18 has been repeated on line 5 (repeated from above)
 ```
 
@@ -600,11 +603,11 @@ This is a very common data wrangling task. The recipe below converts `starwars` 
 #| eval: true
 
 # original wide format (each character has a single row)
-starwars %>% select(-c(films)) %>% head()
+starwars %>% dplyr::select(-c(films)) %>% head()
 
 # conver to long format (each character has 3 rows)
 starwars_long = starwars %>% 
-  select(-c(films, vehicles, starships)) %>%
+  dplyr::select(-c(films, vehicles, starships)) %>%
   pivot_longer(cols = c(height, mass, birth_year), 
                names_to = "measure", 
                values_to = "value")
@@ -628,7 +631,8 @@ This example accomplishes the opposite - converting long data to wide format. Th
 ```{r}
 #| eval: true
 # original long format
-us_rent_income = tidyr::us_rent_income %>% select(-c(moe))
+us_rent_income = tidyr::us_rent_income %>% 
+  dplyr::select(-c(moe))
 us_rent_income %>% head()
 ```
 
@@ -702,7 +706,7 @@ A `tidyr::unnest` recipe: given a list of items for each row (e.g. `c("The Empir
 
 starwars %>%
   unnest_longer(films) %>%
-  select(name, films) %>% head()
+  dplyr::select(name, films) %>% head()
 ```
 
 This isn't really a 'separate' problem, but you may have a character vector that you'd like to split into several columns, where each column is a binary value.
@@ -798,7 +802,7 @@ Recipe: look for duplicate entries according to certain variables and use `slice
 rownames(mtcars) = NULL
 
 mtcars %>%
-  select(mpg, cyl, disp, hp) %>%
+  dplyr::select(mpg, cyl, disp, hp) %>%
   group_by(mpg, cyl, disp, hp) %>%
   mutate(id = row_number()) %>% head()
 ```
@@ -929,7 +933,7 @@ starwars %>%
     mass > 100 | height > 200 ~ "large",
     T ~ "small"
   )) %>%
-  select(name, mass, height, size_group) %>% head()
+  dplyr::select(name, mass, height, size_group) %>% head()
 ```
 
 Note that `case_when` needs to operate on the same class of vectors, e.g. character-only, numeric-only, etc. It's not possible to combine values of e.g. `~ 50` (numeric) and `~ "large"` (character). 
@@ -1156,7 +1160,7 @@ Recipe: recode `gender` values to numeric and assign `NA_real_` if cannot be rec
 ```{r}
 #| eval: true
 starwars %>%
-  select(name:mass, gender) %>%
+  dplyr::select(name:mass, gender) %>%
   mutate(gender2 = recode(
     gender,
     "masculine" = 1,
@@ -2227,7 +2231,7 @@ This package provides some options for high-quality, highly customisable table o
 #| eval: true
 # dummy data
 df = gt::countrypops %>%
-  select(-c(starts_with("country_code"))) %>%
+  dplyr::select(-c(starts_with("country_code"))) %>%
   filter(str_detect(country_name, "Republic")) %>%
   filter(year %in% c(2000, 2010, 2020)) %>%
   pivot_wider(names_from = year, values_from = population)
@@ -2519,7 +2523,7 @@ pass_fail %>% left_join(psc_dist, by = "var") %>%
 #| eval: true 
 
 mpg %>%
-  select(displ, cty, hwy, drv, class) %>%
+  dplyr::select(displ, cty, hwy, drv, class) %>%
   gtsummary::tbl_summary(
     by = class,
     statistic = list(
@@ -2538,7 +2542,7 @@ mpg %>%
 # add p-values for comparisons
 mpg %>%
   filter(class %in% c("compact", "pickup")) %>%
-  select(displ, cty, hwy, class) %>%
+  dplyr::select(displ, cty, hwy, class) %>%
   gtsummary::tbl_summary(
     by = class,
     statistic = list(all_continuous() ~ "{mean} ({sd})"),
@@ -2549,7 +2553,7 @@ mpg %>%
 # add CI
 mpg %>%
   filter(class %in% c("compact", "pickup")) %>%
-  select(displ, cty, class) %>%
+  dplyr::select(displ, cty, class) %>%
   gtsummary::tbl_summary(by = class,
               type = all_continuous() ~ "continuous2",
               statistic = list(
@@ -2561,7 +2565,7 @@ mpg %>%
   add_ci(pattern = "{stat} ({ci})")
 ```
 
-Saving a `gtsummary` object as html or docx:
+Saving a `gtsummary` object as html or docx (install `flextable` package)
 ```{r}
 table %>%
   gtsummary::as_flex_table() %>% 
