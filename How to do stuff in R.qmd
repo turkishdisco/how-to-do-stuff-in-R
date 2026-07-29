@@ -3193,6 +3193,17 @@ model = lm(mpg ~ wt * cyl + gear, data = mtcars)
 summary(model)
 ```
 
+
+Diagnostics
+```{r}
+plot(m, which = 1) # residuals vs fitted
+
+plot(m, which = 2) # QQ plot
+
+plot(m, which = 3) # scale-location (for heteroskedasticity) 
+```
+
+
 ### Logistic Regression
 ```{r}
 #| eval: true
@@ -3212,7 +3223,18 @@ broom::tidy(model) %>%
 	 rename("coefficient" = "estimate")
 ```
 
-To deal with interaction terms
+### Interaction and polynomial terms
+Linear regression can also handle curves. How to know when you need this? A residual plot might show lots of negative or positive values at the extreme ends. 
+```{r}
+# quadratic term (one 'hump')
+model = lm(mpg ~ I(wt^2) , data = mtcars) 
+
+# cubic term (two 'humps')
+model = lm(mpg ~ I(wt^3) , data = mtcars) 
+```
+
+
+
 ```{r}
 #| eval: false
 
@@ -3280,8 +3302,9 @@ summary(ame)
 # will provide AMEs (percentages) for each covariate along with SE, z, P, and 95% CI. 
 
 # if using sandwich SEs, estimate vcov first, then feed in to margins:
-cov_cluster = sandwich::vcovCL(model, cluster = ~ group)
+vcov_cluster = sandwich::vcovCL(model, cluster = ~ group)
 model_cluster_ame = margins::margins(model, vcov = vcov_cluster)
+summary(model_cluster_ame)
 ```
 
 
