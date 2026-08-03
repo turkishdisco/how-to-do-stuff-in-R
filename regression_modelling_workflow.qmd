@@ -1,0 +1,144 @@
+---
+title: "Regression Modelling Workflow"
+date: now
+date-format: "[Last updated:] DD/MM/YYYY HH:mm"
+format:
+  html:
+    standalone: true
+    embed-resources: true
+    toc: true
+    toc-depth: 2
+    toc-expand: 4
+    number-sections: true
+    toc-location: left-body
+    html-table-processing: none
+    df-print: kable
+    code-fold: false
+    theme: default
+    fontsize: 1em
+    link-external-newwindow: true
+execute:
+  warning: false
+  echo: true
+  eval: false
+---
+
+# Introduction
+This document sets out a template workflow for the regression modelling process, including linear and logistic applications.  
+
+# Step 1: Prepare Data
+
+- Determine the dependent variable: interpreted in raw units or scaled? (Remember that a DV doesn't have to show linearity for linear regression)
+- Determine relevant covariates 
+    - E.g. FSM, SEN, Sex, Ethnicity, Summer-born, prior attainment, school type, region
+    - Useful to make into factors and prefix with `c_`:
+
+```{r}
+  mutate(c_fsm6 = if_else(fsm6 == 1, 1, 0),
+         c_sen = if_else(senf == "N", 0, 1),
+         c_eal = if_else(flang == 1, 1, 0),
+         c_male = if_else(sex == "M", 1, 0),
+         c_white_british = if_else(ethnic == "WBRI", 1, 0),
+         c_summer_born = if_else(monthofbirth %in% c(5:8), 1, 0))
+```
+
+
+
+
+
+# Step 2: Interrogate Data
+
+- Descriptive statistics for all variables
+- Correlations for numeric variables
+
+- How does the distribution of the DV differ according to each covariate?
+
+```{r}
+# a matrix of plots of every variable against one another
+# numeric variables will show scatterplots and histograms;
+# discrete variables will show boxplots with other numeric and bar charts/facetbars
+# with other discrete
+df %>%
+  select(...) %>%
+  GGally::ggpairs(upper = list(continuous = "smooth", combo = "box_no_facet", discrete = "count", na = "na"),
+                  lower = list(continuous = "smooth", combo = "facethist", discrete = "facetbar", na = "na"))
+```
+
+
+```{r}
+# for a linear DV:
+# produces a multi-panel density plot for each covariate
+df %>%
+  select(DV, starts_with("c_")) %>%
+  pivot_longer(-c(DV)) %>%
+  mutate(value = as.factor(value)) %>%
+  ggplot(aes(x = DV, fill = factor(value))) +
+  geom_density(bw=1, alpha=0.5) +
+  facet_wrap(vars(name), scales="free")
+```
+
+
+# Step 3: Run First Model
+
+Quick-start options:
+
+- `lm()` - linear DV, single time point
+- `glm()` - binary DV, single time point
+- `lme4::lmer()` - linear DV, multilevel (e.g. repeated measures, clustered)
+- `lme4::glmer()` - binary DV, multilevel (e.g. repeated measures, clustered)
+
+```{r}
+# linear model
+
+m = lm(DV ~ x1 + x2*x3 +
+         c_1 +
+         c_2 +
+         c_3, 
+       data = df)
+
+# multilevel model
+m = lme4::lmer(DV ~ x1 + x2*x3 + (1 | pmr),
+            na.action = na.omit, 
+            REML = F,  
+            control = lmerControl(optimizer = "bobyqa", calc.derivs = T), 
+            data = df)
+```
+
+```{r}
+# logistic model
+
+m = glm(DV ~ x1 + x2*x3,
+        data = df,
+        family = binomial(link = "logit"))
+
+m = lme4::glmer(DV ~ x1 + x2*x3 + (1 | pmr),
+            na.action = na.omit, 
+            REML = F, 
+            family = binomial,
+            control = glmerControl(optimizer = "bobyqa"),
+            data = df)
+```
+
+Next, check the model summary output:
+
+```{r}
+summary(m) # linear
+broom::tidy(m) # linear
+broom::tidy(m, exponentiate = T) # logistic
+broom::glance(m) # model fit stats
+```
+
+
+
+# Step 4: Run Diagnostics
+
+
+
+# Step 5: Amend Model
+
+
+# Step 6: Reassess, compare fit, rerun diagnostics
+
+
+
+# Step 7: 
