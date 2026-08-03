@@ -8,9 +8,9 @@ format:
     embed-resources: true
     toc: true
     toc-depth: 2
-    toc-expand: 1
+    toc-expand: 4
     number-sections: true
-    toc-location: right-body
+    toc-location: left-body
     html-table-processing: none
     df-print: kable
     code-fold: false
@@ -51,6 +51,7 @@ pacman::p_load(
   gtsummary,
   cardx,
   titanic,
+  Rdatasets,
   psych,
   skimr,
   rstatix,
@@ -63,9 +64,15 @@ pacman::p_load(
   mediation,
   ggeffects,
   emmeans,
+  sandwich,
+  lmtest,
   marginaleffects,
+  margins,
   interactions,
+  lmerTest,
+  lattice,
   mice)
+
 ```
 
 # Packages {#sec-packages}
@@ -3189,96 +3196,87 @@ iris %>%
 # model set up
 # notes:
 # - use scale(wt) to center variable
-# - use I(weight^2) to add quadratic term
+# - use I(weight^2) to add quadratic term or I(weight^3) for cubic
 
-model = lm(mpg ~ wt * cyl + gear, data = mtcars)
+# NOTE that scale() on its own will not work - do the following
+# df = df %>% mutate(var_scaled = as.vector(scale(var, center = T, scale = T)))
+
+# use Maths achievement data from Rdatasets
+df = Rdatasets::rddata("MathAchieve")
+
+model_ln = lm(MathAch ~ Minority + Sex + SES, data = df)
 
 # model output
-summary(model)
+summary(model_ln)
+
+# or use broom
+broom::tidy(model_ln)
+
+# isolated outputs
+coefficients(model_ln) 
+confint(model_ln)
+# residuals(model_ln)
+
+# Get stats for each observation, inc fitted, std. resid, hat, and cooksd. 
+# these stats are simply added as new columns to the original dataset (handy!)
+augment(model_ln) %>% head()
+
 ```
 
-
-Diagnostics
-```{r}
-plot(m, which = 1) # residuals vs fitted
-
-plot(m, which = 2) # QQ plot
-
-plot(m, which = 3) # scale-location (for heteroskedasticity) 
-```
 
 
 ### Logistic Regression
 ```{r}
 #| eval: true
-model = glm(Survived ~ Pclass, data = titanic::titanic_train, family = binomial(link = "logit"))
+#model_log = glm(Survived ~ Pclass + Sex + Age, data = titanic::titanic_train, family = binomial(link = "logit"))
+
+#df = Rdatasets::rddata("Gcsemv")
+df2 = Rdatasets::rddata("Exam")
+
+# wrangling for modelling
+# LRT  = London Reading Test
+df2 = df2 %>%
+  # make binary outcome for normexam score => 0
+  mutate(pass = if_else(normexam >= 0, 1, 0)) %>%
+  # convert Verbal Reasoning category to numeric
+  mutate(vr_cat = case_when(
+    vr == "bottom 25%" ~ -1,
+    vr == "mid 50%" ~ 0,
+    vr == "top 25%" ~ 1
+  )) %>%
+  mutate(vr_cat = as.factor(vr_cat))
+
+# fit model
+# note that the reference category by default is the value that is first numerically
+# or alphabetically. For vr_cat here, the reference is -1 (bottom 25%). 
+model_log = glm(pass ~ standLRT + vr_cat + sex + type, data = df2, family = binomial(link = "logit"))
+
+summary(model_log)
 
 # to extract p-values
-coef(summary(model))[,4]
+coef(summary(model_log))[,4]
 
-broom::glance(model) # gives r2, AIC/BIC, etc
+broom::glance(model_log) # gives r2, AIC/BIC, etc
 
 # Alternatively, use `broom` to get tidy model output
-broom::tidy(model, confint=T, exponentiate = F) # change exponentiate to T to get odds ratios for glms
+broom::tidy(model_log, confint=T, exponentiate = T) 
 
 # nifty little trick to amend rounding
-broom::tidy(model) %>%
+broom::tidy(model_log) %>%
   mutate(across(where(is.numeric), \(x) round(x, 3))) %>%
 	 rename("coefficient" = "estimate")
 ```
 
-### Interaction and polynomial terms
-Linear regression can also handle curves. How to know when you need this? A residual plot might show lots of negative or positive values at the extreme ends. 
-```{r}
-# quadratic term (one 'hump')
-model = lm(mpg ~ I(wt^2) , data = mtcars) 
-
-# cubic term (two 'humps')
-model = lm(mpg ~ I(wt^3) , data = mtcars) 
-```
-
-
 
 ```{r}
-#| eval: false
-
-# create model with interaction term
-library(ggeffects)
-data(efc, package = "ggeffects")
-efc = efc
-efc$c161sex = factor(efc$c161sex)
-
-# fit model with interaction
-fit = lm(neg_c_7 ~ c12hour + barthtot * c161sex, data = efc)
-# plot for certain intervals of barthtot - if this was a scaled variable you could
-# do barthtot [-1,0,1] for instance. 
-mydf = ggeffects::predict_response(fit, terms = c("barthtot [30,50,70]", "c161sex"))
-mydf
-plot(mydf)
-
-# note that sJplot produces exactly the same thing
-# sjPlot::plot_model(fit, type = "pred", terms = c("barthtot [30,50,70]", "c161sex")) +
-#   scale_x_continuous(breaks = c(30,50,70)) +
-#   ggtitle("Predicted probabilities")
-```
-
-You can also look at estimated marginal means, but this is something different. I think this differs from `plot_predictions` in restricting predictors to zero/reference levels, rather than reflecting the distributions present in the data itself.
-```{r}
-emmeans::emmeans(fit, ~ barthtot | c161sex,
-                 at = list(att8 = c(30,50,70)), type = "response")
-```
-
-
-Another option is to use `gtsummary`
-```{r}
-
-m = glm(Survived ~ Pclass + Sex + Age, data = titanic::titanic_train, family = binomial(link = "logit"))
-
+#| eval: true
+# alternative: use gtsummary's tbl_regression()
 # note:
 # change show_single_row = c("Sex") to collapse this to a single row
 # will need to install broom.helpers
+pacman::p_load(broom.helpers)
 
-m %>%
+model_log %>%
   gtsummary::tbl_regression(
               exponentiate = T,
               pvalue_fun = label_style_pvalue(digits = 3),
@@ -3288,93 +3286,170 @@ m %>%
   add_vif() %>%
   add_nevent() %>%
   add_glance_source_note()
-
-
-```
-
-#### Average marginal effects
-Average marginal effects (AMEs) have been suggested as an alternative to odds ratios. They represent the change in the probability of an event occurring, controlling for other covariates. In other words, an AME tells you the percentage point change in the probability of an outcome thanks to a particular predictor. I think their advantage is that they can be used when the aim is to compare across different models. 
-```{r}
-
-# use the margins package
-library(margins)
-
-# run your glm model as usual
-# then run margins::margins
-ame = margins::margins(model)
-summary(ame)
-# will provide AMEs (percentages) for each covariate along with SE, z, P, and 95% CI. 
-
-# if using sandwich SEs, estimate vcov first, then feed in to margins:
-vcov_cluster = sandwich::vcovCL(model, cluster = ~ group)
-model_cluster_ame = margins::margins(model, vcov = vcov_cluster)
-summary(model_cluster_ame)
 ```
 
 
-
-Other model outputs and diagnostics
+### Interactions and polynomial terms
+Linear regression can also handle curves. How to know when you need this? A residual plot might show lots of negative or positive values at the extreme ends. Note: you should expect very high multicollinearity for any polynomial terms - this can be [ignored](https://statisticalhorizons.com/multicollinearity/).
 ```{r}
-coefficients(model) 
-confint(model)
-residuals(model)
-```
+# note that you should retain the original predictor and ADD a quadratic version
+# of that same predictor rather than replacing it. 
 
-```{r}
-plot(model) # will produce a range of plots
+# quadratic term (one 'hump')
+model_ln = lm(mpg ~ wt + I(wt^2) , data = mtcars) 
+
+# cubic term (two 'humps')
+model_ln = lm(mpg ~ wt + I(wt^3) , data = mtcars) 
+
+# for an exploratory approach, you can add interactions for all variables in the model
+m = lm(DV ~ main_IV *
+         (c_iv1 +
+          c_iv2 +
+          c_iv3),
+       data = df)
 ```
 
 
 ```{r}
-# predict with new data
-new.height = data.frame(height = c(99, 105, 166))
-predict(model, newdata = new.height)
+#| eval: true
+# create model with interaction term
+# using ggeffects package
+data(efc, package = "ggeffects")
+efc = efc
+efc$c161sex = factor(efc$c161sex)
+
+# fit model with interaction
+fit = lm(neg_c_7 ~ c12hour + barthtot * c161sex, data = efc)
+
+# plot for certain intervals of barthtot - if this was a scaled variable you could
+# do barthtot [-1,0,1] for instance. 
+mydf = ggeffects::predict_response(fit, terms = c("barthtot [30,50,70]", "c161sex"))
+
+mydf
+plot(mydf)
+
+# note that sJplot produces exactly the same thing
+# sjPlot::plot_model(fit, type = "pred", terms = c("barthtot [30,50,70]", "c161sex")) +
+#   scale_x_continuous(breaks = c(30,50,70)) +
+#   ggtitle("Predicted probabilities")
+```
+
+### Estimated marginal means
+You can also look at estimated marginal means, but this is something different. I think this differs from `plot_predictions` in restricting predictors to zero/reference levels, rather than reflecting the distributions present in the data itself. 
+
+The code below will show you how the various levels of a predictor (att8, at 30, 50, and 70) relate to the mean of the DV, averaging over all other covariates in the model. 
+
+YOU MAY GET DIFFERENT RESULTS TO `ggeffects` above!!! This is because they use different averaging strategies - `ggeffects` averages over the values of covariates, while `emmeans` fixes them at their means. The differences in the values, e.g. between -1 and 0 SD will still be the same between the two packages though, and so will the slopes. 
+```{r}
+#| eval: true
+
+# this code uses the model 'fit' and looks at the interaction of barthtot and c161sex
+# for 3 different values of att8
+em = emmeans::emmeans(fit, ~ barthtot | c161sex,
+                 at = list(att8 = c(30,50,70)), type = "response")
+summary(em)
+pairs(em)
+
+# another example
+#emmeans::emmeans(m2, ~ study_leave_rate_5ht_s,
+#                 at = list(study_leave_rate_5ht_s = c(-1,0,1)), type = "response")
 ```
 
 
-Get stats for each observation, inc fitted, std. resid, hat, and cookd. 
+### Diagnostics
+#### Linearity
 ```{r}
-# these stats are simply added as new columns to the original dataset (handy!)
-augment(model) %>% head()
+#| eval: true
+
+# quick method to start with - produces lots of tests but can take time if large model
+performance::check_model(model_ln) 
+
+# simple histogram of residuals
+hist(residuals(model_ln))
+
+plot(model_ln, which = 1) # residuals vs fitted
+
+# for log reg try a binned residual plot 95% of dots should be within the grey lines
+arm::binnedplot(predict(model_log), resid(model_log))
+
+plot(model_ln, which = 2) # QQ plot
+
+# QQ plot with 95% CI (also outputs row id of 2 largest residuals)
+car::qqPlot(model_ln, labels = row.names(model_ln), id.method="identify", simulate=TRUE, main="Q-Q Plot")
+
+# Partial-residual plots for all predictors
+# note: for numeric variables, this produces a linear fit in blue and a smooth
+# fit in solid magenta
+# (only available if model has no interactions - for interactions, use crPlot3d)
+car::crPlots(model_ln)
 ```
 
-Model comparison
-```{r}
-# Compare models
-anova(model, model2)
 
-# chi-square (deviance)
-anova(m1, test = "Chisq")
+Note that if you have a very large sample and it takes too long to render `crPlots`, rerun the model with a random sample. 
+```{r}
+set.seed(123)
+
+idx <- sample(nrow(model.frame(model_ln)), 10000)
+
+model_sample <- lm(
+  formula(model_ln),
+  data = model.frame(model_ln)[idx, ]
+)
+
+car::crPlots(model_sample)
+
+# you can make this into a reusable sample, e.g
+sample_refit = function(model, sample_size){
+  dat = model.frame(model)
+  idx = sample(nrow(dat), sample_size)
+  m_sample = lm(formula(model), data = dat[idx, ])
+}
+
+plot(sample_refit(m, 10000), which = 1) # residuals vs fitted plot
 ```
 
-Regression with `car`
+
+
+#### Heteroskedasticity (non-constant error variance)
 ```{r}
-# Normality
-car::qqPlot(model, labels=row.names(model), id.method="identify",simulate=TRUE, main="Q-Q Plot")
+#| eval: true
+plot(model_ln, which = 3) # scale-location (for heteroskedasticity) 
 
-# Independence of errors
-car::durbinWatsonTest(model)   # non-sig equals lack of autocorrelation
-# lag value=1 means each obs is being compared to one next to it
+# Breusch-Pagan test - if p<.05 then there is heteroskedasticity
+lmtest::bptest(model_ln)
 
-# Linearity (only available if model has no interactions)
-car::crPlots(model)
+# performance also provides the BP test but gives a different result...
+performance::check_heteroscedasticity(model_ln)
 
-# Homoscedasticity (check for non-constant error variance)
-car::ncvTest(model)
-# If non-sig, assumption is met.
+car::ncvTest(model_ln) # If non-sig, assumption is met.
 
-car::spreadLevelPlot(model) # looking for a horizontal line
+# Tukey spread level plot
+car::spreadLevelPlot(model_ln) # looking for a horizontal line
+# also prints a suggested power transformation number to fix non-constant variance
 
-# Multicollinearity
+# you can use the below to rerun the model using a heteroskedasticity-robust 
+# variance-covariance matrix. If the results are similar, then it's not having
+# a considerable effect. 
+lmtest::coeftest(model_ln, vcov = vcovHC(model_ln, type = "HC3"))
+```
+
+
+#### Multicollinearity
+```{r}
 # Variance inflation factor (VIF)
-car::vif(model)
+performance::check_collinearity(model_ln)
+
+car::vif(model_ln)
 # sqrt(VIF) > 2 indicates a potential problem
-sqrt(car::vif(model)) > 2
+```
+
+#### Leverage and influence
+```{r}
 
 # Outliers
-car::outlierTest(model) # locates largest Studentized residual in absolute value and computes Bonferroni-corrected t-test
+car::outlierTest(model_ln) # locates largest Studentized residual in absolute value and computes Bonferroni-corrected t-test
 
-car::influencePlot(model, id.method="identify", main="Influence Plot",
+car::influencePlot(model_ln, id.method="identify", main="Influence Plot",
               sub="Circle size is proportional to Cook's distance")
 
 # Explanation:
@@ -3385,31 +3460,137 @@ car::influencePlot(model, id.method="identify", main="Influence Plot",
 # parameters estimates of the model.
 ```
 
-## Cluster-robust standard errors
+
+#### Other diagnostics
+```{r}
+# Durbin Watson test against autocorrelation of disturbances
+lmtest::dwtest(model_ln)
+
+car::durbinWatsonTest(model_ln)   # non-sig equals lack of autocorrelation
+# lag value=1 means each obs is being compared to one next to it
+```
+
+
+### Average marginal effects
+Average marginal effects (AMEs) have been suggested as an alternative to odds ratios. They represent the change in the probability of an event occurring, controlling for other covariates. In other words, an AME tells you the percentage point change in the probability of an outcome thanks to a particular predictor. I think their advantage is that they can be used when the aim is to compare across different models. 
+```{r}
+#| eval: true
+
+# use the margins package
+
+# run your glm model as usual
+# then run margins::margins
+ame = margins::margins(model_log)
+summary(ame)
+# will provide AMEs (percentages) for each covariate along with SE, z, P, and 95% CI. 
+
+# if using sandwich SEs, estimate vcov first, then feed in to margins:
+vcov_cluster = sandwich::vcovCL(model_log, cluster = ~ school)
+model_cluster_ame = margins::margins(model_log, vcov = vcov_cluster)
+summary(model_cluster_ame)
+
+
+# visualise this
+# convert to df first
+model_cluster_ame_df = as.data.frame(summary(model_cluster_ame))
+model_cluster_ame_df %>%
+  ggplot(aes(x = reorder(factor, AME, decreasing=F), y = AME)) +
+  geom_point() +
+  geom_linerange(aes(ymin = lower, ymax = upper)) +
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "red") +
+  scale_y_continuous(breaks = seq(-0.1,0.4, by = 0.1), 
+                     limits = c(-0.1, 0.35)) +
+  theme_minimal() +
+  theme(axis.title.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black")) +
+  coord_flip() +
+  geom_label(aes(label = paste0(round(AME,3)*100,"%")), 
+             size = 3.5, 
+             alpha = 1, 
+             vjust = -0.5,
+             hjust = 0,
+             fill = NA,
+             border.colour = NA) +
+  ylab("Percentage point change in probability of passing test for every 1-unit change in predictor")
+```
+
+
+
+```{r}
+# predict with new data
+new.height = data.frame(height = c(99, 105, 166))
+predict(model, newdata = new.height)
+```
+
+
+
+### Model fit and comparison
+There are several measures to quantify how well a model fits the data. To extract R2 from the original model output, try:
+
+- `summary(model_ln)$r.squared`
+- `performance::r2(model_ln)`
+
+```{r}
+#| eval: true
+
+# get a range of model fit stats
+performance::model_performance(model_ln) # shows AIC, R2, ICC, RMSE all together
+broom::glance(model_ln)
+
+# to get AIC or BIC alone:
+# AIC(model_ln)
+# BIC(model_ln)
+```
+
+You can compare model fit using Wald or Likelihood Ratio Tests:
+```{r}
+
+# fit second model for comparison
+model_ln2 = lm(MathAch ~ Minority *Sex + SES, data = df)
+
+# Wald test
+anova(model_ln, model_ln2)
+# or: 
+lmtest::waldtest(model_ln, model_ln2)
+
+# likelihood ratio test using Chisq (deviance)
+anova(model_ln, model_ln2, test = "Chisq")
+# or:
+lmtest::lrtest(model_ln, model_ln2)
+
+```
+
+
+### Cluster-robust standard errors
 To account for clustering in the data (not to model it specifically), you can apply cluster-robust standard errors after White (1984). 
 
 ```{r}
-#| eval: false
+#| eval: true
 # fit your model as usual, e.g. with lm() or glm()
 
-library(sandwich)
-library(lmtest)
 # obtain cluster-robust errors with clustering specified
-vcov_cluster <- sandwich::vcovCL(model, cluster = ~ school_id)
+vcov_cluster = sandwich::vcovCL(model_ln, cluster = ~ School)
 
 # Coefficient table with clustered SEs
-lmtest::coeftest(model, vcov = vcov_cluster)
+lmtest::coeftest(model_ln, vcov = vcov_cluster)
 
-# alternatively use fixest
+# compare with original - Std. Error is higher when using clusters
+coef(summary(model_ln))[,2]
+
+
+# alternatively use fixest for logistic models
 # this is very fast but it's not easy to exponentiate when using logistic
-library(fixest)
+p_load(fixest)
 # fit model using:
-model = feglm(ks5_any_sci_grade ~ triple_sci_e, data=df, ...,
-               cluster = ~ urn)
+model_fixest = fixest::feglm(pass ~ standLRT + vr_cat + sex + type, 
+                             data = df2, 
+                             family = binomial(link = "logit"),
+                             cluster = ~ school)
 
-summary(model)
-etable(model)
-exp(cbind(`Odds Ratio` = coef(model), confint(model)))
+summary(model_fixest)
+etable(model_fixest)
+exp(cbind(`Odds Ratio` = coef(model_fixest), confint(model_fixest)))
 ```
 
 
@@ -3421,13 +3602,16 @@ library(lmerTest) # for obtaining p-values for estimates
 # BBolker (https://stat.ethz.ch/pipermail/r-sig-mixed-models/2013q4/021094.html) suggests:
 # Rules of thumb are >=5 levels for estimating a random effect, and 10-20 observations per parameter
 
+# syntax is as follows:
+# random intercept for subject
 model = lmer(outcome ~ predictor1*predictor2 + (1 | subject), 
             na.action = na.omit, 
             REML = F,  
             control = lmerControl(optimizer = "bobyqa", calc.derivs = T), 
-            data=data) # random intercept for subject
+            data = data) 
 
-model2 = lmer(outcome ~ predictor1*predictor2 + (1 + subject | predictor), ...) # random slope for subject over predictor1
+# random slope for subject over predictor1
+model2 = lmer(outcome ~ predictor1*predictor2 + (1 + subject | predictor), ...) 
 
 # When adding predictors to previous models, use update
 model3 = update(model2, .~. + new_predictor)
@@ -3437,23 +3621,65 @@ model3 = update(model2, .~. + new_predictor)
 
 summary(model) # gives Satterthwaite p-values by default - requires REML=T
 summary(model, ddf="Kenward-Roger") # can also choose "Satterthwaite" or "lme4". 
-# Choose Satterthwaite for ML, but choose Kenward Roger for models fit using REML. 
+# Choose Satterthwaite for ML, but choose Kenward Roger for models fit using REML.
+```
 
-anova(model, model2)
+A real example with `sleepstudy`
+```{r}
+#| eval: true
+
+# random intercept for subject
+m1 = lmer(Reaction ~ Days + (1 | Subject), data = sleepstudy)
+
+# examine this visually - clearly the model needs random slopes too
+xyplot(Reaction ~ Days | Subject,
+       data = sleepstudy,
+       xlab = "Days of sleep deprivation",
+       ylab = "Reaction time (ms)",
+       panel = function(x, y, subscripts, ...) {
+         
+         lattice::panel.grid(h = -1, v = -1)
+         lattice::panel.xyplot(x, y, pch = 16)
+         
+         o <- order(x)
+         lattice::panel.lines(x[o],
+                              sleepstudy$pred[subscripts][o],
+                              col = "red",
+                              lwd = 2)
+       })
+
+
+# fit a second model with random slopes
+m2 = lmer(Reaction ~ Days + (1 + Days | Subject), data = sleepstudy)
+
+lattice::xyplot(Reaction ~ Days | Subject, sleepstudy, type = c("g","p","r"),
+       index = function(x,y) coef(lm(y ~ x))[1],
+       xlab = "Days of sleep deprivation",
+       ylab = "Average reaction time (ms)", aspect = "xy")
+```
+
+```{r}
+#| eval: true
+
+# summarise model (lmerTest provides p-values)
+summary(m1)
 
 # for tidy output, use the broom.mixed package
-broom.mixed::tidy(model) %>% mutate(across(where(is.numeric), round, 5))
-
-# to turn off scientific notation for p-values, add this (it makes them characters):
-mutate(p.value = format(round(p.value,5), scientific = FALSE))
+broom.mixed::tidy(m1) %>% 
+  mutate(across(where(is.numeric),\(x) round(x, 5))) %>%
+  # to turn off scientific notation for p-values, add this (it makes them characters):
+  mutate(p.value = format(round(p.value,5), scientific = FALSE))
 
 # another way to access parts of the model object:
-coef(summary(model)) # fixed
-VarCorr(model) # random
+coef(summary(m1)) # fixed
+VarCorr(m1) # random
 
 # if convergence issues:
-afex::all_fit(model) # will try with many different optimisers
+lme4::allFit(m1) # will try with many different optimisers
 
+```
+
+```{r}
 # To compute LRT for each fixed effect automatically, use
 afex::mixed(outcome ~ predictor1*predictor2 + (1|subject), data = data, method="LRT")
 afex::mixed(model, dataset, method="LRT")
@@ -3470,32 +3696,19 @@ confint.merMod(model, method="Wald")
 # that profile = slow but fairly accurate; Wald = fast but least accurate; boot = slowest but most accurate
 ```
 
+
 ```{r}
 # LMM diagnostics
 # two things: (1) histogram of model residuals
-hist(residuals(model)) # as recommended by Linck & Cunnings 2015
-plot(resid(model))
+hist(residuals(m1)) # as recommended by Linck & Cunnings 2015
+plot(resid(m1))
 
-# (2) histograms of random effects
-# Linck & Cunnings 2015 method:
-# Save random effects into object, then plot histograms on lists within it
-rfx <- ranef(model)
-qplot(rfx$participant$'(Intercept)') # histogram
-plot(rfx$participant$'(Intercept)') # for non-constancy
-qplot(rfx$school$'age') # for a nested ranef, e.g. (1 + age | school)
-lattice::dotplot(ranef(model, condVar = TRUE))
-
-# another method to access intercept values
-model.refs <- as.vector(ranef(model)[[1]])[,1]
-hist(model.refs)
+# (2) check distribution of random effects
+# Linck & Cunnings 2015 method
+lattice::dotplot(ranef(m1, condVar = TRUE))
 
 # performance package
-performance::model_performance(model) # shows AIC, R2, ICC, RMSE all together
-performance::check_model(model) # lots of tests - can take time if large model
-performance::check_collinearity(model) # examine VIF
-performance::r2(model) # determines most appropriate r2 (inc. conditional/marginal)
-performance::icc(model) # intraclass correlation (proportion of variance explained by grouping structure)
-performance::check_heteroscedasticity(model)
+performance::icc(m1) # intraclass correlation (proportion of variance explained by grouping structure)
 
 # pseudo R2
 library(MuMIn)
