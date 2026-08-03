@@ -1156,7 +1156,11 @@ theme_chris = function(){
     axis.line = element_line(colour = "grey80"),
     panel.grid.major.y = element_line(colour = "grey90"),
     panel.grid.major.x = element_blank(), 
-    panel.background = element_rect(fill = "white", colour = NA))
+    panel.background = element_rect(fill = "white", colour = NA),
+    axis.title = element_text(size=14),
+    axis.text = element_text(size=12),
+    strip.text = element_text(size=12),#for facet_wrap panel titles
+    plot.title = element_text(size=14, hjust = 0.5))
 }
 
 p + theme_chris()
