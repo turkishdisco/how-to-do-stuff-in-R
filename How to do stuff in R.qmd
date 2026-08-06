@@ -1122,17 +1122,26 @@ iris %>% relocate(plant = Species,
 
 
 ### Recoding
-Use `dplyr::recode` to change old values (first) into new values (second): 
+Use `dplyr::recode_values` to change old values (first) into new values (second): 
 ```{r}
 #| eval: false
 
 df %>%
-  mutate(sen_status = recode(
+  mutate(sen_status = recode_values(
     sen_status,
-    "N" = "NoSEN",
-    "K" = "SENSupport",
-    "E" = "EHCP",
-    "S" = "Statement"))
+    "N" ~ "NoSEN",
+    "K" ~ "SENSupport",
+    "E" ~ "EHCP",
+    "S" ~ "Statement"))
+
+# if numeric:
+df %>%
+  mutate(sen_status = recode_values(
+    sen_status,
+    1 ~ "NoSEN",
+    2 ~ "SENSupport",
+    3 ~ "EHCP",
+    4 ~ "Statement"))
 ```
 
 Note that for some reason if you are recoding numeric to character, you need to place integers in quotes:
@@ -1764,8 +1773,8 @@ filter(date > as.Date("2001-01-19") & date < as.Date("2003-03-21"))
 #| eval: true
 mtcars %>%
   group_by(cyl) %>%
-  get_summary_stats(c(mpg, wt), 
-                    type = "mean_sd")
+  rstatix::get_summary_stats(c(mpg, wt), 
+                    type = "full")
 ```
 
 
@@ -2597,6 +2606,69 @@ df %>%
   )
 ```
 
+While `tbl_strata` only works for nesting, you can produce several independent tables and merge them, as long as they have the same structure
+```{r}
+# create and save tables one by one
+t1 = non_miss %>%
+  select(study_leave_rate_5ht, study_leave_days_5ht, att8, five94, level2em94, 
+         phase, ks4_pupils, ks2emss, starts_with("c_")) %>%
+  gtsummary::tbl_summary(
+    type = all_continuous() ~ "continuous2",
+    statistic = list(
+      all_continuous() ~ c(
+        "{median} ({sd})",
+        "{min}-{max}"),
+      all_categorical() ~ "{n} ({p}%)"   
+    ),
+    digits = all_continuous() ~ 2,
+    missing = "no", # whether to include missing values in separate rows
+    percent = "column", #or 'column'
+  ) 
+
+# as above but by FSM status
+t2 = non_miss %>%
+  select(study_leave_rate_5ht, study_leave_days_5ht, att8, five94, level2em94, 
+         phase, ks4_pupils, ks2emss, starts_with("c_")) %>%
+  gtsummary::tbl_summary(
+    by = c_fsm6,
+    type = all_continuous() ~ "continuous2",
+    statistic = list(
+      all_continuous() ~ c(
+        "{median} ({sd})",
+        "{min}-{max}"),
+      all_categorical() ~ "{n} ({p}%)"   
+    ),
+    digits = all_continuous() ~ 2,
+    missing = "no", # whether to include missing values in separate rows
+    percent = "column", #or 'column'
+  )
+
+# as above but by selective status
+t3 = non_miss %>%
+  select(study_leave_rate_5ht, study_leave_days_5ht, att8, five94, level2em94, 
+         phase, ks4_pupils, ks2emss, starts_with("c_")) %>%
+  gtsummary::tbl_summary(
+    by = c_selective,
+    type = all_continuous() ~ "continuous2",
+    statistic = list(
+      all_continuous() ~ c(
+        "{median} ({sd})",
+        "{min}-{max}"),
+      all_categorical() ~ "{n} ({p}%)"   
+    ),
+    digits = all_continuous() ~ 2,
+    missing = "no", # whether to include missing values in separate rows
+    percent = "column", #or 'column'
+  )
+
+# this will leave blank cells for where data isn't appropriate, e.g. FSM in the
+# FSM breakdown table
+tbl_merge(
+  tbls = list(t1, t2, t3),
+  tab_spanner = c("All", "FSM", "Selective")
+)
+```
+
 
 ## Quarto documents
 Below is a template for a Quarto YAML. Note: include `standalone` and `embed-resources` if you want to be able to share or view the HTML file on another device. 
@@ -2913,6 +2985,16 @@ airquality %>%
 
 
 ## Rounding and leading zeroes
+```{r}
+#| eval: true
+# Simple rounding
+mtcars %>% summarise(mean_mpg = round(mean(mpg, na.rm=T)), 3)
+
+# as character - helps for printing
+mtcars %>% summarise(mean_mpg = sprintf("%.3f", mean(mpg, na.rm=T)))
+```
+
+
 A generic function to remove the leading zero from any numeric value.
 ```{r}
 #| eval: true
@@ -3345,14 +3427,29 @@ YOU MAY GET DIFFERENT RESULTS TO `ggeffects` above!!! This is because they use d
 
 # this code uses the model 'fit' and looks at the interaction of barthtot and c161sex
 # for 3 different values of att8
+# (if you are using cluster robust SEs, pass the vcov matrix to emmeans, otherwise leave
+# this out)
+# you can add vcov = vcov_cluster if you have one too
 em = emmeans::emmeans(fit, ~ barthtot | c161sex,
                  at = list(att8 = c(30,50,70)), type = "response")
 summary(em)
 pairs(em)
 
-# another example
-#emmeans::emmeans(m2, ~ study_leave_rate_5ht_s,
-#                 at = list(study_leave_rate_5ht_s = c(-1,0,1)), type = "response")
+# check reference grid to see the values at which slopes are being evaluated
+emmeans::ref_grid(fit)
+```
+
+Another useful tool from `emmeans` is `emtrends` which allows you to see trends for different values of categorical covariates.
+```{r}
+emtrends(fit, ~ c_fsm6, 
+         var = "study_leave_rate_5ht_s", 
+         vcov. = vcov_cluster)
+
+# combine with ggeffects to visualise
+# note that this visualises slopes while holding other covariates at their typical
+# values (e.g. mean or reference value)
+plot(ggeffects::predict_response(fit, terms = c("study_leave_rate_5ht_s [-1,0,1]", "c_fsm6"),
+                                 vcov = vcov_cluster))
 ```
 
 
