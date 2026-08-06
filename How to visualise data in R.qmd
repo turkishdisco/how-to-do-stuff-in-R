@@ -147,7 +147,7 @@ Use `geom_bin_2d`
 ```{r}
 # by default, bins is set at 30. Specifying binwidth will overwrite this.
 ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
-  geom_bin_2d(aes(fill = ..count..),  color = "black") + 
+  geom_bin_2d(aes(fill = ..count..),  color = "black", bins = 30) + 
   scale_fill_gradient(name = "Density", low = "lightgreen", high = "darkgreen")
 ```
 
@@ -506,6 +506,15 @@ ggplot2::diamonds %>%
   geom_density(bw = 0.05, alpha = 0.4)
 ```
 
+## Rug plot
+```{r}
+mpg %>%
+  ggplot(aes(displ, cty)) +
+   geom_jitter() +
+  geom_rug(alpha = 1/2, position = "jitter") +
+  geom_rug()
+```
+
 
 
 ## Pie
@@ -610,6 +619,29 @@ ggMarginal(p1, type = "histogram",
            margins = "both", # note: "x", "y", or "both" 
            fill = "orange",
            xparams = list(binwidth = 2))
+
+```
+
+```{r}
+#| eval: false
+# if you have lots of comparisons:
+vars = c("att8", "ks2emss", "ks4_pupils")
+
+plots = lapply(vars, function(v) {
+
+  p = ggplot(
+    model_data,
+    aes(x = .data[[v]], y = study_leave_rate_5ht)) +
+    geom_point(alpha = 0.3)
+
+  ggExtra::ggMarginal(
+    p,
+    type = "histogram",
+    fill = "orange"
+  )
+})
+
+patchwork::wrap_plots(plots, nrow=1, ncol=3)
 ```
 
 
@@ -1834,8 +1866,18 @@ palmerpenguins::penguins %>%
   theme_bw()
 ```
 
+## `patchwork`
+```{r}
+#| eval: false
+plots_obj
 
-## Arranging
+patchwork::wrap_plots(plots_obj, 
+                      nrow = 1,
+                      ncol = 3)
+```
+
+
+## `ggarrange`
 Use `ggarrange` from the `ggpubr` package to arrange plots.
 ```{r}
 #| fig-height: 3.5
