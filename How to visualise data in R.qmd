@@ -147,7 +147,7 @@ Use `geom_bin_2d`
 ```{r}
 # by default, bins is set at 30. Specifying binwidth will overwrite this.
 ggplot(iris, aes(x = Petal.Length, y = Petal.Width)) +
-  geom_bin_2d(aes(fill = ..count..),  color = "black", bins = 30) + 
+  geom_bin_2d(aes(fill = after_stat(count)),  color = "black", bins = 30) + 
   scale_fill_gradient(name = "Density", low = "lightgreen", high = "darkgreen")
 ```
 
