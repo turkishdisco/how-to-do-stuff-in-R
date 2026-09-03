@@ -3441,15 +3441,45 @@ emmeans::ref_grid(fit)
 
 Another useful tool from `emmeans` is `emtrends` which allows you to see trends for different values of categorical covariates.
 ```{r}
+# for categorical (where fsm6 has 2 values)
 emtrends(fit, ~ c_fsm6, 
-         var = "study_leave_rate_5ht_s", 
+         var = "study_leave_rate", 
          vcov. = vcov_cluster)
 
-# combine with ggeffects to visualise
+# or numeric 
+emtrends(m3, ~ ks2emss_s, var = "study_leave_rate", 
+         at = list(ks2emss_s = c(-1, 0, 1),
+         vcov. = vcov_cluster))
+
+# combine with emmip from emmeans to visualise
+emmip(m3, c_selective ~ study_leave_rate,
+          at = list(study_leave_rate = c(0, 5, 10)),
+          CIs = F)
+
+# or for numeric:
+# save emms first
+ks2_emm = emmeans(m3, ~ study_leave_rate | ks2emss_s,
+               at = list(study_leave_rate = c(0, 5, 10),
+                         ks2emss_s = c(-1, 0, 1)))
+# turn into dataframe
+ks2_df = as.data.frame(ks2_emm)
+
+# create factors for groupings of interest, e.g. -1,0,+1 SD
+ks2_df$group <- factor(
+  ks2_df$ks2emss_s,
+  levels = c(-1, 0, 1),
+  labels = c("-1 SD", "Mean", "+1 SD")
+)
+
+# plot directly
+ggplot(ks2_df, aes(x = study_leave_rate_5ht_pp, y = emmean, colour = group)) +
+  geom_line(linewidth = 0.8)
+
+# also predict_response?
 # note that this visualises slopes while holding other covariates at their typical
 # values (e.g. mean or reference value)
-plot(ggeffects::predict_response(fit, terms = c("study_leave_rate_5ht_s [-1,0,1]", "c_fsm6"),
-                                 vcov = vcov_cluster))
+#plot(ggeffects::predict_response(fit, terms = c("study_leave_rate_5ht_s [-1,0,1]", "c_fsm6"),
+#                                 vcov = vcov_cluster))
 ```
 
 
@@ -3689,6 +3719,83 @@ summary(model_fixest)
 etable(model_fixest)
 exp(cbind(`Odds Ratio` = coef(model_fixest), confint(model_fixest)))
 ```
+
+
+### Reporting regression
+
+### `stargazer`
+```{r}
+stargazer(m1, m2,
+          dep.var.labels = c("Attainment 8"),
+          single.row = T,
+          covariate.labels = c("Study leave rate", "FSM6", "Male", "EAL", "SEN",
+                               "White British", "Selective", "KS4 cohort size",
+                               "KS2 prior attainment", "KS2 prior quadratic",
+                               "Study leave : FSM6", "Study leave : EAL",
+                               "Study leave : SEN", "Study leave : selective",
+                               "Study leave : KS2 prior"),
+          type="text",
+          out = "regression_results.txt")
+
+# note that if you're using a regular lm object, stargazer will output model fit
+# statistics below.
+# If not, e.g. you're using coeftest because of sandwich SEs, you can do the following:
+vcov_cluster1 <- sandwich::vcovCL(m2, cluster = ~ urn)
+vcov_cluster2 <- sandwich::vcovCL(m4, cluster = ~ urn)
+
+stargazer(
+  m2,
+  m4,
+  se = list(
+    sqrt(diag(vcov_cluster1)),
+    sqrt(diag(vcov_cluster2))
+  ),
+  dep.var.labels = "Attainment 8",
+  single.row = TRUE,
+  covariate.labels = c(...),
+  type = "text"
+)
+
+```
+
+### `modelsummary`
+```{r}
+modelsummary(
+  list("Model 1" = m2, "Model 2" = m4),
+  vcov = list(
+    sandwich::vcovCL(m2, cluster = ~urn),
+    sandwich::vcovCL(m4, cluster = ~urn)
+  ),
+  estimate  = "{estimate}{stars} ({std.error})",
+  statistic = NULL,
+  stars = c("*" = .05, "**" = .01, "***" = .001),
+  # which model fit stats to leave out (grep)
+  gof_omit = c('BIC|Num.Obs|R2$|Log.Lik'),
+  # provide custom values for coefficients
+  coef_map = c(
+    study_leave_rate_5ht_s = "Study leave rate",
+    c_fsm61 = "FSM6",
+    c_male1 = "Male",
+    c_eal1 =  "EAL",
+    c_sen1 = "SEN",
+    c_white_british1 = "White British", 
+    c_selective1 = "Selective",
+    ks2_pupils = "KS4 cohort size",
+    ks2emss = "KS2 prior attainment", 
+    # NOTE that anything with non-standard notation needs to be quoted
+    "I(ks2emss^2)" = "KS2 prior quadratic",
+    "study_leave_rate_5ht_s:c_fsm61" = "Study leave : FSM6", 
+    "study_leave_rate_5ht_s:c_eal1" = "Study leave : EAL",
+    "study_leave_rate_5ht_s:c_sen1" = "Study leave : SEN", 
+    "study_leave_rate_5ht_s:c_selective1" = "Study leave : selective",
+    "study_leave_rate_5ht_s:ks2emss" = "Study leave : KS2 prior"
+  ),
+  # custom notes - asterisks need to be escaped to display in docx
+  notes = "Notes: All N=550,737; \\*p<.05, \\*\\*p<.01, \\*\\*\\*p<.001",
+  output = "regression_results.docx"
+)
+```
+
 
 
 ## Linear mixed effects modelling
