@@ -1350,9 +1350,14 @@ df %>%
                                 "2021/22", "2022/23")) +
   coord_cartesian(clip = "off") +
   geom_label_repel(aes(label = subject), 
-                   label.padding = .15, 
                    data = df %>% group_by(subject) %>% filter(time_period == max(time_period)),
-                   size = 3, hjust = 0.5, nudge_x=0.5)
+                   size = 3, 
+                   box.padding = 0.25, #increase for more space b/w labels
+                   label.padding = 0.15,
+                   hjust = 0.5, 
+                   nudge_x=0.5,
+                   force = 1,
+                   force_pull = 0)
 
 ```
 
@@ -2082,7 +2087,7 @@ Files will be saved in your current working directory.
 my_plot = ggplot(...)
 
 ppi = 300  # pixels per inch
-png("file_name.png", width = 4*ppi, height = 4*ppi, res = ppi)
+png("file_name.png", width = 4*ppi, height = 4*ppi, res = ppi, bg = "white")
 my_plot
 dev.off()
 ```
