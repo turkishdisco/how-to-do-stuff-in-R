@@ -1022,6 +1022,37 @@ iris %>%  mutate(across(where(is.numeric), \(x) round(x, 0)))
 
 # create a flag across cols 2 to 7 - 1 if cells are non-NA and 0 if they are NA
 df %>% mutate(any_grade = if_else(rowSums(!is.na(across(2:7))) > 0, 1, 0))
+
+# by default, summarise and across will leave the column names unchanged, but you
+# can add a .names argument to change this:
+df %>%
+  summarise(
+    across(
+      c(
+        maths_score,
+        read_score,
+        KS1MATPS,
+      ),
+      ~ mean(.x, na.rm = TRUE),
+      .names = "{.col}_mean"
+    )
+  )
+# this will produce maths_score_mean, read_score_mean, etc. 
+
+# or if you have a list of functions to apply, it will rename them dynamically
+df %>%
+  summarise(
+  across(
+    c(maths_score, 
+      read_score),
+    list(
+      mean = ~ mean(.x, na.rm = TRUE),
+      sd   = ~ sd(.x, na.rm = TRUE)
+    ),
+    .names = "{.col}_{.fn}"
+  )
+)
+# giving maths_score_mean, maths_score_sd, etc. 
 ```
 
 Some examples of `dplyr::c_across`
@@ -2196,6 +2227,35 @@ my_func = function(df, subject){
 }
 ```
 
+Another example of glue:
+```{r}
+ofsted_grading_function<-
+  function(x, y){
+    
+    var = as.symbol(y)
+     
+    x %>% mutate({{ y }} := case_when(
+      {{var}} == "1" ~ "Outstanding",
+      {{var}} == "2" ~ "Good",
+      {{var}} == "3" ~ "Requires Improvement",
+      {{var}} == "4" ~ "Inadequate",
+      {{var}} == "0" ~ NA_character_,
+      
+      {{var}} == "SWK" ~" Serious Weaknesses",
+      {{var}} == "SM" ~" Special Measures",
+      
+      {{var}} == "8" ~ NA_character_,
+      {{var}} == "9" ~ NA_character_,
+      {{var}} == "NULL" ~ NA_character_,
+      T ~ NA_character_))
+  }
+
+# then later:
+ofsted_data_output <- purrr::map_df(.f = ofsted_input_function, .x = c(17:25)) %>% 
+  bind_rows(ofsted_data_16) %>% 
+  ofsted_grading_function("overall_effectiveness")
+```
+
 
 
 ## Nifty functions for various tasks
@@ -3040,6 +3100,7 @@ df %>%
   mutate(given_name_s = xml2::xml_text(read_html(paste0("<p>", given_name_s, "</p>"))))
 ```
 
+
 ## Calculate the mode
 There is no native function for this, so use the custom function below.
 ```{r}
@@ -3072,6 +3133,35 @@ outcome <- gl(3, 1, 9)
 treatment <- gl(3, 3)
 m4 <- glm(counts ~ outcome + treatment, family = poisson())
 ```
+
+
+Here is a recipe for when you have long-format data and you want to determine the year or 'wave' that a unit started doing something (like participating in an intervention).
+```{r}
+#| eval: true
+
+df = data.frame(
+  urn = c(10000, 10000, 10000, 10000, 10000),
+  year = c(2016, 2017, 2018, 2019, 2020),
+  status = c("none", "none", "program", "program", "program")
+)
+df
+```
+
+Say for this urn, you want to know the first year that its status changed to 'program': the answer is 2018. 
+```{r}
+#| eval: true
+df %>%
+  group_by(urn) %>%
+  mutate(
+    wave_year = if (any(status != "none")) {
+      min(year[status != "none"])
+    } else {
+      0
+    }
+  ) %>%
+  ungroup()
+```
+
 
 
 
@@ -3300,8 +3390,11 @@ confint(model_ln)
 # residuals(model_ln)
 
 # Get stats for each observation, inc fitted, std. resid, hat, and cooksd. 
-# these stats are simply added as new columns to the original dataset (handy!)
-augment(model_ln) %>% head()
+# these stats are added as new columns to the original dataset if you specify
+# the original dataframe under 'data'
+model_diagnostics = augment(x = model_ln, data = df)
+
+model_diagnostics %>% head()
 
 ```
 
