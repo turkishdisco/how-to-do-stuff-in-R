@@ -49,7 +49,8 @@ p_load(
   gghighlight,
   afcharts,
   gapminder,
-  devtools)
+  devtools,
+  sf)
 ```
 
 Note: this guide uses built-in datasets from the following, amongst others:
@@ -1648,6 +1649,7 @@ ggplot2::diamonds %>%
   scale_fill_brewer(palette = "Spectral") +
   theme_void()
 ```
+
 ### Brewer qualitative palettes
 * Accent
 * Dark2
@@ -1702,11 +1704,14 @@ ggplot2::midwest %>%
 ```
 
 
+
 # Mapping
-Use the `sf` package and a shapefile to visualise data on a map. This shapefile comes from the UK government's [Geoportal](https://geoportal.statistics.gov.uk/search?q=BDY_RGN%3BDEC_2023&sort=Title%7Ctitle%7Casc). This [tool](https://borders.ukdataservice.ac.uk/bds.html) is also a good resource for finding different shapefiles. 
+Use the `sf` package and a shapefile to visualise data on a map. This shapefile comes from the UK government's [Geoportal](https://geoportal.statistics.gov.uk/search?q=BDY_RGN%3BDEC_2023&sort=Title%7Ctitle%7Casc). 
+
+This [tool](https://borders.ukdataservice.ac.uk/bds.html) is also a good resource for finding different shapefiles. 
+
+Also see [this 2025 LA shapefile and interactive map](https://geoportal.statistics.gov.uk/datasets/ons::local-authority-districts-may-2025-boundaries-uk-bfe-v2/about). 
 ```{r}
-library(sf)
-library(tidyverse)
 
 # firstly read in a shapefile. Note that when you download a shapefile, it comes with other 
 # files like .shx. These all need to be in the same directory as the .shp file itself.
@@ -1743,7 +1748,7 @@ eng_reg_map %>%
                       na.value = "white")
 ```
 
-To add points based on geometry:
+## Adding points based on geometry
 ```{r}
 # say you have a data frame from GIAS with easting and northing values of schools (these could be lat/long too)
 map_df = data.frame(
@@ -1778,6 +1783,64 @@ eng_reg_map %>%
   theme_void()
 # optionally if you have used aes(colour = pupils): + scale_colour_gradient(low = "grey", high = "red")
 ```
+
+
+## Local Authority map
+```{r}
+uk_la_map = st_read("./Shapefiles/LAD_MAY_2025_UK_BFE_V2_-726696083958028870/LAD_MAY_2025_UK_BFE_V2.shp")
+
+# limit to England and check map
+uk_la_map %>%
+  filter(str_detect(LAD25CD, "^E")) %>%
+  ggplot() +
+  geom_sf(fill = "white", colour = "grey60") +
+  theme_void()
+```
+
+Overlay certain Local Authorities on the regional shapefile
+```{r}
+# limit shapefile to desired LAs
+la_data = uk_la_map %>%
+  filter(LAD25NM %in% c("Barnet", "Bradford", "Gloucester", "South Gloucestershire",
+                        "Hartlepool", "Leicester", "North West Leicestershire",
+                        "Rutland", "Luton", "Oldham", "Portsmouth", "Telford and Wrekin",
+                        "Shropshire"))
+
+eng_reg_map %>%
+  ggplot() +
+  geom_sf(fill   = NA,
+          colour = "grey50") +
+  geom_sf(data = la_data, fill="salmon") +
+  theme_void()
+```
+To add labels to geographical areas, you need to compute the centroid (this differs to individual points which have an easting and northing)
+```{r}
+las_labels <- la_data |>
+  st_centroid()
+
+coords <- st_coordinates(las_labels)
+
+las_labels <- cbind(las_labels, coords)
+
+eng_reg_map %>%
+  ggplot() +
+  geom_sf(fill   = NA, colour = "grey50") +
+  geom_sf(data = la_data, fill="salmon") +
+  ggrepel::geom_label_repel(data = las_labels,
+                            aes(X, Y, label = LAD25NM),
+                            force_pull = 0.5,
+                            force = 1,
+                            box.padding = 0.7,
+                            nudge_x = 0.2,
+                            nudge_y = 0.2,
+                            size = 3.5,
+                            label.padding = 0.12) +
+  theme_void() +
+  theme(legend.position = "none")
+```
+
+
+
 
 # Odd bits for sorting later
 
