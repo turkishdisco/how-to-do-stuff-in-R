@@ -143,7 +143,16 @@ df = readxl::read_excel("myFile.xlsx",
 # note: if this throws an error about "cannot open zip file", it's because you need to close the file
 # on your desktop first.
 
-# to read in every worksheet
+Combine with `janitor::clean_names()`
+```{r}
+df = read_csv("myFile.csv", na = c("")) %>%
+  clean_names(case = c("snake", "lower_camel", "upper_camel", ...))
+```
+
+Working with sheets
+```{r}
+# to read in several sheets and extract as individual dataframes:
+# get a list of all sheets read in every worksheet
 sheets = excel_sheets("file_with_multiple_sheets.xlsx")
 # if you need to remove one of the worksheets from this list:
 sheets = sheets[sheets != "notes"]
@@ -158,20 +167,67 @@ list2env(lst, envir = .GlobalEnv)
 
 ## Read in a list of files
 ```{r}
+# extract file list from working directory that match .csv 
 files = list.files(path = "path",
                    pattern = "*.csv",
                    full.names = T)
 
+# combine into one dataframe (NOTE: requires consistent column types, but you can
+# have blank columns)
 df = sapply(files, read_csv, simplify=F) %>%
   bind_rows()
 ```
 
-
-Combine with `janitor::clean_names()`
+If you only want to read in a subset of the files
 ```{r}
-df = read_csv("myFile.csv", na = c("")) %>%
-  clean_names(case = c("snake", "lower_camel", "upper_camel", ...))
+# create a custom character vector to match against
+pathfinder_list = c("Roade", "KST", "Springhill", "St John Bosco", "Lacey Green")
+
+# extract file list from working directory
+files = list.files(pattern = "*.xlsx", full.names = T)
+
+# keep only the relevant files
+# extract the pattern - this will combine the names, e.g. "Roade|KST|..."
+pattern = paste(pathfinder_list, collapse = "|")
+
+# extract only the files that match one of these names in the pattern
+files_keep = files[grepl(pattern, files)]
 ```
+
+Building on this, if you only want to read in the sheet names that match the given names:
+```{r}
+# first create a lookup table which lists the file name and matching character string, e.g
+# File                                                               Sheet
+# ./Arch_reception_priority_schools_template_for_hubs_sep_26.xlsx    Arch
+
+lookup <- tibble(file = files_keep) |>
+  mutate(
+    sheet = map_chr(
+      file,
+      ~ pathfinder_list[stringr::str_detect(basename(.x),
+                        stringr::fixed(pathfinder_list))]))
+# explanation: 
+# - create a new variable called sheet;
+# - use map_chr to loop over each file path in files_keep
+# - remove the path with basename() (i.e. deletes the "./" at the start)
+# - use str_detect to return TRUE when a pathfinder name occurs in a file name,
+# (so for the first file name, 'Arch' does occur in it - this get a TRUE, but KST will
+# get a FALSE, etc)
+# - (could probably just use regex to extract everything up until the first space or underscore)
+
+# then use map2_dfr to map over these file names, only reading in the sheets that
+# match the string.
+# optionally, tell read_excel to ignore any irrelevant columns, and create an id
+df = map2_dfr(
+  lookup$file,
+  lookup$sheet,
+  ~ read_excel(.x, sheet = .y) %>%
+    select(-any_of("neli_number")) %>%
+    mutate(id = .y, before = 1)
+)
+# says: for each file and sheet in lookup, read in the sheet that matches the file
+```
+
 
 
 
@@ -1935,6 +1991,7 @@ lapply(df_list, function(x) names(x))
 #| eval: true
 sapply(df_list, function(x) sum(x), simplify = T)
 ```
+
 ### `vapply`
 
 - `vapply` is the same as `sapply` but allows you to determine the type of return value:
@@ -1971,6 +2028,66 @@ vector2 = c(2, 4, 1, 2, 10)
 
 mapply(max, vector1, vector2, SIMPLIFY = T)
 ```
+
+
+## `purrr` map functions
+The `purrr` package provides a clean way of applying functions to each element of a vector: 
+
+- `map(.x, .f)` takes a single vector
+- `map2(.x, .y, .f)` takes two vectors
+- `pmap(.l, .f)` takes multiple vectors
+
+There are differing map functions depending on the desired output:
+
+- `map_df`: for a dataframe
+- `map_dbl`: double/numeric
+- `map_chr`: character
+- `map_lgl`: logical
+
+Generally, the first argument (`.x`) is the data object (which may be a dataframe, vector, or list) and `.f` is the function to apply. 
+
+A simple example: add the word 'region' to each element in a character vector of regions
+```{r}
+#| eval: true
+# create vector
+regions = c("London", "South East", "South West", "Midlands", "North East", "North West")
+
+# approach 1 - write a separate function
+add_suffix = function(x){
+  paste0(x, " region")
+}
+
+# then apply this function
+purrr::map_chr(.x = regions,
+           .f = add_suffix)
+
+# approach 2 - pipe directly from regions and apply anonymous function
+regions %>%
+  purrr::map_chr(., \(x) paste0(x, " region"))
+```
+
+
+Example of `map_df` for dynamically reading in excel files:
+```{r}
+# create a list of dataset names
+maths_hub_datasets<- c(
+  "20250104_DFE_Maths_Hubs_Programme_Data",
+  "20251028_DFE_Programme_DataSet_202425_V2",
+  "20260810_DFE_Maths_Hubs_Programme_Data" # Omit all 2026 data for now
+)
+
+# create a function that pastes .xlsx onto each element in this list and then
+# reads it in, also creating a version variable 
+import_hub_data <- function(x){
+  maths_hub_data <- readxl::read_excel(paste0(x, ".xlsx"), sheet = 1) %>%  
+    mutate(version = str_sub(x, 1, 8))
+}
+
+# apply 
+maths_hub_data_input <- map_df(.f = import_hub_data,
+                               .x = maths_hub_datasets)
+```
+
 
 Example of using `purrr::map2()`
 ```{r}
@@ -2649,6 +2766,16 @@ table %>%
   # or  flextable::save_as_docx(path = "./filename.docx")
 ```
 
+If you want to add a title to the top, you need to convert back to a `gt` object:
+```{r}
+gttable %>%
+  as_gt() %>%
+  tab_header(title = "This is my header",
+             subtitle = "A subtitle if you wish") # or alternatively:
+ #tab_header(title = md(**Table 1**: my title))
+```
+
+
 Note that if you want to have more than one grouping factor, you need to use `tbl_strata` or `tbl_strata2`:
 ```{r}
 df %>%
@@ -2798,7 +2925,7 @@ quarto_render(input = "notebook.qmd",
 
 
 # Create Excel workbook
-Use the `openxlsx` package to export various objects, dataframes, or outputs to an Excel file with multiple worksheets. Also have a look at [`openxlsx2](https://janmarvin.github.io/openxlsx2/). 
+Use the `openxlsx` package to export various objects, dataframes, or outputs to an Excel file with multiple worksheets. Also have a look at [`aftables`](https://analysisfunction.civilservice.gov.uk/blog/aftables-version-2-1-0-is-now-available/) which uses [`openxlsx2](https://janmarvin.github.io/openxlsx2/). 
 ```{r}
 library(openxlsx)
 
@@ -3305,7 +3432,7 @@ states %>% rstatix::cor_test(method = "pearson", use = "complete.obs")
 ```{r}
 #| eval: true
 corr <- round(cor(states), 3)
-p.mat <- cor_pmat(corr)
+p.mat <- cor_pmat(states)
 
 ggcorrplot(corr, method="square", type="upper", 
            lab=T, lab_size = 3, tl.cex = 10, digits=4, p.mat= p.mat) +
@@ -4004,6 +4131,11 @@ plot(resid(m1))
 # Linck & Cunnings 2015 method
 lattice::dotplot(ranef(m1, condVar = TRUE))
 
+# also try:
+sjPlot::plot_model(m1) # gives points plot for covariates - blue for >0, red for <0. 
+sjPlot::plot_model(m1, "re")
+plot_model(m1, type = "pred", terms = "x")
+
 # performance package
 performance::icc(m1) # intraclass correlation (proportion of variance explained by grouping structure)
 
@@ -4031,6 +4163,120 @@ gmodel = glmer(outcome ~ predictor1 + predictor2 + (1 | subject),
 
 broom.mixed::tidy(gmodel, exponentiate = T)
 ```
+
+
+## Fixed effects regression
+When you have reason to believe that a DV is correlated with the (unobserved) characteristics of a unit or cluster (like a school), a fixed effects model is a more robust approach than a random effects one. There are different methods for fitting fixed effects models, but `lfe::felm` is thought to be superseded by `fixest::feols`, and this section will focus on the latter.
+
+Fixed effects capture confounders that are time-invariant and specific to each unit. In the case of schools, these could be variables such as intake, leadership style, prior performance, school ethos, and so on. It's likely that many of these will be related to educational attainment, so it makes sense in a regression model to account for the variation associated with each school. In simple terms, "fixed effects estimation" is defined simply as an estimation that includes categorical variables as controls. In `feols` this is accomplished by transforming the data and then running regular OLS on it. It uses a procedure called 'demeaning' which involves calculating the mean for each cluster and then subtracting this from each individual observation. Through this process, the variation associated with each school is accounted for / cancelled out, and it is not necessary to compute separate coefficients and SEs for each unit (there may be thousands). 
+
+Explanation of fixed effects from Rosenqvist and Brandon [2025](https://watermark02.silverchair.com/jcae031.pdf?token=AQECAHi208BE49Ooan9kkhW_Ercy7Dm3ZL_9Cf3qfKAc485ysgAAAm8wggJrBgkqhkiG9w0BBwagggJcMIICWAIBADCCAlEGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMbc6ic-x5hupHW6aKAgEQgIICIpIcmDXv6JDp_nhZf57sd-xHk5hJQeU8S0sbyIkRLLBKj6lfAsb20u9jCMpVoikJDsFAtDAqFthO-FhB1nGmFwz2fmmyLbCod5QbhO_nAJfxhtJ1qNzxjB1qcWSx0zGiu_LJohP9LJvRaT1Lgo3vL4Jv0sB9lD6zLS4vir_F-G53xoLF-RyJ3uHWmuVa2Wws3a1Fix8dLYz-vPGIYYjhi5NoEqF6opxZX_o0Gtbqup9Bgm83w-mOGwzM4adGjRwb5-kuYawON3LAvN5dMuQCdmY9IgIZ2qM6btCc8iq8jxSMT2yOHxpNbull7e2CuWmaHCEAA6wNg2WKacE0YBtyJzysYCAJ56iijMRUdNASTuFbO6j0W79HGVFGo-DxsUDwvjXeSehkCOE2JgjeO0kK-MQcAaH5FkW9ah0jpN1ueDv9iKiRL2hy757y56UhNCKCTHjM79UmTTPgoBHJzF8GU3pQKzquKdcLfmMdK8AofdRwZLT0u3jDUpO6sg3-qhvugZvrywU-jcIsDbk8jAfFEN-Sb3KPqVqh8phxmIHWs4ZnKF7x1c4UU0UXRekSfkb0m9bRjh2NSfNo-OKhTfNdrrHwwsqHk4Od082Q4gB3JjnwIFVFQc4CPms5EJ7l6wIVMYSkDMxz3Al02imIKJKfLC6F00Vfh3NjDn8BqfP8P7VIqHXCep_ARfepcQtjk0GYQMLXF_RozuedoDMJbGxTHgdQoA): their analysis aimed to "capture characteristics at the school-, family- and child levels and to include school-fixed effects **to adjust for time-invariant school-level confounders** that affect both school composition and academic decisions". They also note that "one caveat with the school fixed effects approach is that it does not capture the effects of school composition between schools – it only captures effects within schools"; and that it "relies on the assumption that variation between cohorts within a school is random". 
+
+Note that if a certain variable does not vary WITHIN a unit, it will be dropped because otherwise it is perfectly explained by the unit. For instance, selective school status is always consistent within a URN, whereas attainment levels vary. Additionally, a FE model will drop the interept because of high collinearity.
+
+A Hausman test can be used to look for significant differences between the results of a random effects vs fixed effects model (see [here](https://stats.stackexchange.com/questions/502811/should-a-hausman-test-be-used-to-decide-between-fixed-vs-random-effects/502927#502927)). It sounds like this will be significant with large samples anyway, so not very informative. I also get the impression that RE models are preferred because (1) they produce smaller SEs than FE models; and (2) they allow you to model within/between relationships so you can see exactly what's going on.
+
+```{r}
+# Hausman test
+# fit between and within models first
+library(plm)
+form = y ~ x1 + x2
+wi <- plm(form, index = "urn", data = model_data_all, model = "within") # equivalent
+# to fixest::feols used below
+
+# random effects model (v close to result of lmer)
+re <- plm(form, index = "urn", data = model_data_all, model = "random")
+
+# run the test
+phtest(wi, re)
+#  significant result suggests switching to fixed effects
+```
+
+
+```{r}
+#| eval: true
+library(fixest)
+
+# The general syntax is:
+# - DV ~ regular predictors | fixed effect (e.g. urn), cluster = ~ urn, data = data)
+
+data(trade)
+
+# estimating the negative effect of distance on trade, in terms of Euros earned.
+# Broken down by countries of origin and destination, product, and year
+gravity_pois = fepois(Euros ~ 
+                      log(dist_km) | Origin + Destination + Product + Year, 
+                      cluster = ~ Product,
+                      trade)
+
+# summary(gravity_pois)
+# etable can be used to see different models side by side
+etable(gravity_pois)
+
+coefplot(gravity_pois, ci.width = "5%")
+```
+
+An example I used
+```{r}
+m1_feols = fixest::feols(att8 ~ study_leave_rate_5ht_pp +
+                           c_fsm6 +
+                           c_male +
+                           c_eal +
+                           c_sen +
+                           c_white_british +
+                           #c_selective +
+                           c_summer_born +
+                           overall_absence_rate_5ht_pp +
+                           ks2emss_s |
+                           urn,
+                           cluster = ~ urn,
+                           data = model_data_all)
+
+summary(m1_feols)
+
+etable(m1_feols,
+       dict = c("study_leave_rate_5ht_pp" = "Study leave rate",
+                "c_fsm6" = "FSM6",
+                "c_male" = "Male",
+                "c_eal" = "EAL",
+                "c_sen" = "SEN",
+                "c_white_british" = "White British",
+                "c_summer_born" = "Summer born",
+                "overall_absence_rate_5ht_pp" = "Absence rate",
+                "ks2emss_s" = "KS2 attainment")) 
+
+coefplot(m1_feols, ci.width = "5%")
+```
+
+
+Example of a Random Effects Within and Between (REWB) / Mundlak 'hybrid' model. This is basically a random intercept model with two additional terms for the unit-average y and the original level-1 observation subtracted from this unit mean. The idea is that if the two coefficients are wildly different (e.g. in sign) then it's evidence for between- and within-effects acting differently, and the hybrid model should be used (as described in Bell et al., 2018 _Fixed and random effects models: making an informed choice_). 
+```{r}
+data = data %>%
+  group_by(urn) %>%
+  mutate(
+    study_leave_between = mean(study_leave_rate_5ht_pp),
+    study_leave_within = study_leave_rate_5ht_pp - study_leave_between)
+
+m1_hyb = lme4::lmer(
+    att8 ~ study_leave_between +
+    study_leave_within +
+    c_fsm6 +
+    c_male +
+    c_eal +
+    c_sen +
+    c_white_british +
+    c_selective +
+    c_summer_born +
+    ks4_pupils +
+    overall_absence_rate_5ht_pp +
+    ks2emss_s +
+    (1 | urn),
+    data = data)
+
+summary(m1_hyb)
+```
+
+
 
 
 ## Quantile regression
